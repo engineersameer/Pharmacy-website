@@ -1,7 +1,8 @@
-import { AnimatePresence, motion, useMotionValueEvent, useScroll, useSpring } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { Menu, Moon, Sun, X } from 'lucide-react'
 import { useState } from 'react'
 import { BrandMark } from '@/components/brand-mark'
+import { FloatingHeader } from '@/components/shared/floating-header'
 import { buttonVariants } from '@/components/ui/button'
 import { useStore } from '@/hooks/use-store'
 import { useTheme } from '@/hooks/use-theme'
@@ -18,24 +19,36 @@ export function Header() {
   const store = useStore()
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
-  const [scrolled, setScrolled] = useState(false)
   const [active, setActive] = useState<string | null>(null)
 
-  const { scrollY, scrollYProgress } = useScroll()
-  const progress = useSpring(scrollYProgress, { stiffness: 200, damping: 30, restDelta: 0.001 })
-  useMotionValueEvent(scrollY, 'change', (y) => setScrolled(y > 10))
+  const mobileNav = (
+    <AnimatePresence>
+      {open && (
+        <motion.nav
+          id="mobile-nav"
+          aria-label="Main"
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25, ease: [0.22, 0.8, 0.2, 1] }}
+          className="glass absolute inset-x-3 top-full mt-2 flex flex-col gap-1 p-3 lg:hidden"
+          style={{ background: 'var(--popover)' }}
+        >
+          {links.map((l) => (
+            <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-xl px-4 py-3 font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+              {l.label}
+            </a>
+          ))}
+          <a href="#refill" onClick={() => setOpen(false)} className={cn(buttonVariants(), 'mt-2')}>
+            Refill a prescription
+          </a>
+        </motion.nav>
+      )}
+    </AnimatePresence>
+  )
 
   return (
-    <header className="sticky top-0 z-50 px-0 transition-[padding] duration-500 ease-luxe data-[scrolled=true]:px-3 data-[scrolled=true]:pt-3 md:data-[scrolled=true]:px-6" data-scrolled={scrolled}>
-      <div
-        className={cn(
-          'relative mx-auto flex min-h-[72px] max-w-[1180px] items-center gap-3 border border-transparent px-4 transition-[background-color,border-color,border-radius,box-shadow,min-height,backdrop-filter] duration-500 ease-luxe md:px-8',
-          // At the top of the page the header has no box of its own, so the background shows
-          // through without any visible edges. Once scrolled it becomes the floating glass pill.
-          scrolled &&
-            'min-h-16 rounded-full border-glass-border bg-[color-mix(in_srgb,var(--background)_72%,transparent)] shadow-[var(--shadow)] backdrop-blur-xl backdrop-saturate-150 md:px-6',
-        )}
-      >
+    <FloatingHeader after={mobileNav}>
         <a href="#top" className="mr-auto inline-flex min-w-0 items-center gap-2.5 font-heading text-[1.2rem] font-semibold text-foreground sm:text-[1.4rem]" aria-label={`${store.name} home`}>
           <BrandMark />
           <span className="truncate">{store.name}</span>
@@ -95,36 +108,6 @@ export function Header() {
           {open ? <X /> : <Menu />}
         </button>
 
-        <motion.div
-          aria-hidden="true"
-          className={cn('absolute inset-x-0 -bottom-px h-0.5 origin-left bg-primary', scrolled && 'inset-x-8 rounded-full')}
-          style={{ scaleX: progress }}
-        />
-      </div>
-
-      <AnimatePresence>
-        {open && (
-          <motion.nav
-            id="mobile-nav"
-            aria-label="Main"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25, ease: [0.22, 0.8, 0.2, 1] }}
-            className="glass absolute inset-x-3 top-full mt-2 flex flex-col gap-1 p-3 lg:hidden"
-            style={{ background: 'var(--popover)' }}
-          >
-            {links.map((l) => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-xl px-4 py-3 font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
-                {l.label}
-              </a>
-            ))}
-            <a href="#refill" onClick={() => setOpen(false)} className={cn(buttonVariants(), 'mt-2')}>
-              Refill a prescription
-            </a>
-          </motion.nav>
-        )}
-      </AnimatePresence>
-    </header>
+    </FloatingHeader>
   )
 }
