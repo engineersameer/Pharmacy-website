@@ -101,7 +101,7 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(320px,420px)_1fr] lg:items-start">
       {/* List */}
-      <section className={cn('flex flex-col gap-4', current && 'hidden lg:flex')} aria-label="Orders">
+      <section className={cn('flex min-w-0 flex-col gap-4', current && 'hidden lg:flex')} aria-label="Orders">
         <div className="flex items-center gap-3">
           <h1 className="mr-auto text-[2rem]">Orders</h1>
           <LiveBadge online={live.online} loaded={live.loaded} />
@@ -167,7 +167,7 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
       </section>
 
       {/* Details */}
-      <section className={cn('lg:sticky lg:top-24', !current && 'hidden lg:block')} aria-label="Order details">
+      <section className={cn('min-w-0 lg:sticky lg:top-24', !current && 'hidden lg:block')} aria-label="Order details">
         {current ? (
           <OrderDetail key={current.id} order={current} onChanged={live.upsert} onBack={() => setSelected(null)} />
         ) : (

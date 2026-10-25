@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowLeft,
   Bike,
+  Check,
   Copy,
   MapPin,
   MessageCircle,
@@ -127,12 +128,7 @@ export function OrderDetail({
       )}
 
       <Section title="Prescriptions" icon={<Paperclip />}>
-        {order.prescriptions.length > 0 ? (
-          <PrescriptionFiles prescriptions={order.prescriptions} />
-        ) : (
-          <p className="mb-1 text-muted-foreground">No prescription attached yet.</p>
-        )}
-        {order.orderType === 'refill' && <AttachPrescription order={order} onChanged={onChanged} />}
+        <PrescriptionsPart order={order} onChanged={onChanged} />
       </Section>
 
       {(steps.length > 0 || canCancel) && (
@@ -186,8 +182,72 @@ function Section({ title, icon, children }: { title: string; icon?: ReactNode; c
   )
 }
 
-/** Refills without a (known) number: attach one, or find the customer's earlier prescriptions by phone */
-function AttachPrescription({ order, onChanged }: { order: StaffOrder; onChanged: (o: StaffOrder) => void }) {
+/** What the customer typed, if their prescription number wasn't found (saved in the notes) */
+function numberNotFound(order: StaffOrder) {
+  return order.notes.match(/prescription number (\d+), not found/)?.[1] ?? null
+}
+
+/** The prescriptions part of an order, explained for each case */
+function PrescriptionsPart({ order, onChanged }: { order: StaffOrder; onChanged: (o: StaffOrder) => void }) {
+  const [addingAnother, setAddingAnother] = useState(false)
+  const hasFiles = order.prescriptions.length > 0
+
+  // Case 1: new customer uploaded photos
+  if (order.orderType === 'new_prescription') {
+    return (
+      <>
+        <p className="mb-3 text-[0.92rem] text-muted-foreground">Uploaded by the customer with this order. Click a photo to see it full size.</p>
+        <PrescriptionFiles prescriptions={order.prescriptions} />
+      </>
+    )
+  }
+
+  // Case 2: refill with no prescription yet: explain what happened and how to fix it
+  if (!hasFiles) {
+    const typed = numberNotFound(order)
+    return (
+      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+        <p className="mb-1 flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-300">
+          <AlertTriangle className="size-4" /> No prescription attached yet
+        </p>
+        <p className="mb-4 text-[0.92rem]">
+          {typed ? (
+            <>
+              The customer typed <span className="font-semibold">{typed}</span>, but no prescription has that number.
+            </>
+          ) : (
+            "The customer didn't have their prescription number."
+          )}{' '}
+          Find the right prescription and attach it before preparing the order.
+        </p>
+        <FindPrescription order={order} onChanged={onChanged} />
+      </div>
+    )
+  }
+
+  // Case 3: refill linked to a prescription
+  return (
+    <>
+      <p className="mb-3 text-[0.92rem] text-muted-foreground">
+        This refill is for {order.prescriptions.length === 1 ? 'the prescription' : 'the prescriptions'} below. Click a photo to see it
+        full size.
+      </p>
+      <PrescriptionFiles prescriptions={order.prescriptions} />
+      {addingAnother ? (
+        <div className="mt-4 border-t border-glass-border pt-4">
+          <FindPrescription order={order} onChanged={onChanged} />
+        </div>
+      ) : (
+        <button type="button" onClick={() => setAddingAnother(true)} className="mt-4 text-sm font-semibold text-primary hover:underline">
+          + Attach another prescription
+        </button>
+      )}
+    </>
+  )
+}
+
+/** Two ways to find a prescription: this customer's past ones (by phone), or by typing the number */
+function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: (o: StaffOrder) => void }) {
   const api = useStaffApi()
   const [number, setNumber] = useState('')
   const [error, setError] = useState('')
@@ -195,11 +255,11 @@ function AttachPrescription({ order, onChanged }: { order: StaffOrder; onChanged
 
   const attach = useMutation({
     mutationFn: (n: string) => api.attachPrescription(order.id, n),
-    onSuccess: (o) => {
+    onSuccess: (o, n) => {
       onChanged(o)
       setNumber('')
       setError('')
-      toast.success('Prescription attached')
+      toast.success(`Prescription ${n} attached to order #${order.id}`)
     },
     onError: (e) => setError(e instanceof ApiError ? Object.values(e.fields)[0] || e.message : 'Could not attach.'),
   })
@@ -213,54 +273,64 @@ function AttachPrescription({ order, onChanged }: { order: StaffOrder; onChanged
   const attached = new Set(order.prescriptions.map((p) => p.id))
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (number.trim()) attach.mutate(number.trim())
+    if (number.length === 8) attach.mutate(number)
   }
 
   return (
-    <div className="mt-4 border-t border-glass-border pt-4">
-      <form onSubmit={submit} className="flex flex-wrap gap-2">
-        <label htmlFor={`attach-${order.id}`} className="sr-only">
-          Prescription number
-        </label>
-        <input
-          id={`attach-${order.id}`}
-          inputMode="numeric"
-          placeholder="Prescription number"
-          value={number}
-          onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').slice(0, 8))}
-          className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-field px-4 outline-none focus:border-primary"
-        />
-        <Button type="submit" size="sm" disabled={attach.isPending || number.length !== 8}>
-          Attach
-        </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={() => search.mutate()} disabled={search.isPending}>
-          <Search /> Find by phone
-        </Button>
-      </form>
-      {error && <p className="mt-2 text-sm font-medium text-destructive">{error}</p>}
-      {found && (
-        <div className="mt-3">
-          {found.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No earlier prescriptions for {localPhone(order.customerPhone)}.</p>
-          ) : (
-            <ul className="flex flex-wrap gap-2">
-              {found.map((p) => (
-                <li key={p.id}>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={attached.has(p.id) || attach.isPending}
-                    onClick={() => attach.mutate(p.number)}
-                    title={`Uploaded ${fullTime(p.createdAt)}`}
-                  >
-                    {p.number} {attached.has(p.id) ? '· attached' : '· attach'}
+    <div className="flex flex-col gap-4">
+      {/* Option 1 */}
+      <div>
+        <p className="mb-2 text-sm font-semibold">Option 1: look at this customer's past prescriptions</p>
+        {found === null ? (
+          <Button size="sm" variant="ghost" onClick={() => search.mutate()} disabled={search.isPending}>
+            <Search /> {search.isPending ? 'Searching…' : `Search by ${localPhone(order.customerPhone)}`}
+          </Button>
+        ) : found.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {localPhone(order.customerPhone)} has no earlier prescriptions with us. Ask the customer to upload a photo instead.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {found.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 rounded-xl border border-glass-border bg-glass-strong px-4 py-2.5">
+                <span className="font-semibold tracking-wider">{p.number}</span>
+                <span className="text-sm text-muted-foreground">uploaded {fullTime(p.createdAt)}</span>
+                {attached.has(p.id) ? (
+                  <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary">
+                    <Check className="size-4" /> On this order
+                  </span>
+                ) : (
+                  <Button size="sm" className="ml-auto h-9" onClick={() => attach.mutate(p.number)} disabled={attach.isPending}>
+                    Attach
                   </Button>
-                </li>
-              ))}
-            </ul>
-          )}
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Option 2 */}
+      <form onSubmit={submit}>
+        <label htmlFor={`attach-${order.id}`} className="mb-2 block text-sm font-semibold">
+          Option 2: type the prescription number
+        </label>
+        <div className="flex gap-2">
+          <input
+            id={`attach-${order.id}`}
+            inputMode="numeric"
+            placeholder="8 digits, e.g. 20200870"
+            value={number}
+            onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').slice(0, 8))}
+            className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-field px-4 outline-none focus:border-primary"
+          />
+          <Button type="submit" size="sm" className="h-11" disabled={attach.isPending || number.length !== 8}>
+            Attach
+          </Button>
         </div>
-      )}
+      </form>
+
+      {error && <p className="text-sm font-medium text-destructive">{error}</p>}
     </div>
   )
 }
