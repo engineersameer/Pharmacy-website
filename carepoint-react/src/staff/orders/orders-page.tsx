@@ -174,7 +174,7 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
         {current ? (
           <OrderDetail key={current.id} order={current} onChanged={live.upsert} onBack={() => setSelected(null)} />
         ) : (
-          <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-glass-border text-center text-muted-foreground">
+          <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-glass-border bg-glass-strong text-center text-muted-foreground shadow-[var(--shadow)] backdrop-blur-md">
             <div>
               <Inbox className="mx-auto mb-3 size-10 opacity-60" />
               Pick an order to see the details.
@@ -254,7 +254,7 @@ function Empty({ searching, tab }: { searching: boolean; tab: Tab }) {
         ? 'Nothing in progress.'
         : 'No finished orders yet.'
   return (
-    <div className="rounded-2xl border border-dashed border-glass-border px-6 py-12 text-center text-muted-foreground">
+    <div className="rounded-2xl border border-dashed border-glass-border bg-glass-strong px-6 py-12 text-center text-muted-foreground shadow-[var(--shadow)] backdrop-blur-md">
       <Inbox className="mx-auto mb-3 size-8 opacity-60" />
       {text}
     </div>
