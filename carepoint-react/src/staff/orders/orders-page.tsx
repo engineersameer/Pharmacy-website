@@ -7,6 +7,7 @@ import { localPhone, STATUS_LABEL, STATUS_STYLE, timeAgo } from '../format'
 import { useStaffApi } from '../staff-api'
 import type { StaffOrder } from '../types'
 import { OrderDetail } from './order-detail'
+import { useStoreName } from '../use-store-name'
 import { useLiveOrders } from './use-live-orders'
 
 type Tab = 'new' | 'progress' | 'done'
@@ -34,6 +35,7 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
   useTick()
   const api = useStaffApi()
   const live = useLiveOrders(onNewOrders)
+  const storeName = useStoreName()
   const [tab, setTab] = useState<Tab>('new')
   const [selected, setSelected] = useState<number | null>(null)
   const [query, setQuery] = useState('')
@@ -70,8 +72,9 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
 
   // The browser tab title shows how many orders are waiting
   useEffect(() => {
-    document.title = counts.new > 0 ? `(${counts.new}) New order${counts.new > 1 ? 's' : ''} · CarePoint Staff` : 'CarePoint Staff'
-  }, [counts.new])
+    const base = `${storeName} Staff`
+    document.title = counts.new > 0 ? `(${counts.new}) New order${counts.new > 1 ? 's' : ''} · ${base}` : base
+  }, [counts.new, storeName])
 
   const searching = debounced.length >= 2
   const list = useMemo(() => {

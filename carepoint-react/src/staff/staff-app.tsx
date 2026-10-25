@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Bell, BellOff, ClipboardList, LogOut, Moon, Settings, Sun } from 'lucide-react'
+import { Bell, BellOff, ClipboardList, ExternalLink, LogOut, Moon, Settings, Sun } from 'lucide-react'
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { Toaster } from 'sonner'
 import { BrandMark } from '@/components/brand-mark'
+import { footerLink, FooterBar } from '@/components/shared/footer-bar'
 import { buttonVariants } from '@/components/ui/button'
 import { useTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
@@ -12,6 +13,7 @@ import { LoginPage } from './login-page'
 import { OrdersPage } from './orders/orders-page'
 import { SettingsPage } from './settings/settings-page'
 import type { StaffOrder } from './types'
+import { useStoreName } from './use-store-name'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -25,7 +27,6 @@ export default function StaffApp() {
     meta.name = 'robots'
     meta.content = 'noindex, nofollow'
     document.head.appendChild(meta)
-    document.title = 'CarePoint Staff'
     return () => meta.remove()
   }, [])
 
@@ -68,6 +69,7 @@ function Dashboard() {
   const { theme, toggle: toggleTheme } = useTheme()
   const alerts = useOrderAlerts()
   const { path, go } = usePath()
+  const storeName = useStoreName()
   const onSettings = path.startsWith('/staff/settings')
   const announce = useCallback((orders: StaffOrder[]) => alerts.announce(orders), [alerts])
 
@@ -77,12 +79,12 @@ function Dashboard() {
   ]
 
   return (
-    <div className="min-h-svh">
+    <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b border-glass-border bg-[color-mix(in_srgb,var(--background)_80%,transparent)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1400px] items-center gap-1 px-3 sm:gap-2 md:px-8">
           <a href="/staff" onClick={go('/staff')} className="mr-1 inline-flex items-center gap-2 font-heading text-xl font-semibold sm:mr-2">
             <BrandMark className="size-7" />
-            <span className="hidden sm:inline">CarePoint</span>
+            <span className="hidden max-w-[16ch] truncate sm:inline">{storeName}</span>
             <span className="rounded-full bg-secondary px-2 py-0.5 font-sans text-[0.65rem] font-semibold tracking-wide text-secondary-foreground uppercase">
               Staff
             </span>
@@ -133,13 +135,33 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1400px] px-4 py-8 md:px-8">
+      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-8 md:px-8">
         {/* Orders stay mounted on the settings page so live updates and alerts keep running */}
         <div hidden={onSettings}>
           <OrdersPage onNewOrders={announce} />
         </div>
-        {onSettings && <SettingsPage />}
+        {onSettings && <SettingsPage onBack={go('/staff')} />}
       </main>
+
+      <FooterBar
+        left={
+          <span>
+            © {new Date().getFullYear()} {storeName} · Staff dashboard
+          </span>
+        }
+        right={
+          <>
+            {nav.map((n) => (
+              <a key={n.to} href={n.to} onClick={go(n.to)} className={footerLink}>
+                {n.label}
+              </a>
+            ))}
+            <a href="/" target="_blank" rel="noreferrer" className={`${footerLink} inline-flex items-center gap-1`}>
+              Public website <ExternalLink className="size-3.5" />
+            </a>
+          </>
+        }
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { GlassCard } from '@/components/shared/glass-card'
 import { Reveal } from '@/components/shared/reveal'
 import { SectionHeading } from '@/components/shared/section-heading'
+import { useStore } from '@/hooks/use-store'
 import { cn } from '@/lib/utils'
 
 type Service = {
@@ -91,10 +92,11 @@ function ServiceCard({ service: s }: { service: Service }) {
 
 /** Example text message: shows what customers get when the refill is ready */
 function ReadyText() {
+  const store = useStore()
   return (
     <div aria-hidden="true" className="w-full max-w-[260px] rounded-2xl border border-glass-border bg-glass-strong p-3.5 text-sm shadow-[var(--shadow)]">
       <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
-        <span className="font-semibold text-foreground">CarePoint</span>
+        <span className="font-semibold text-foreground">{store.name}</span>
         <span>now</span>
       </div>
       <p className="leading-snug">Your refill is ready for pickup. 💊</p>

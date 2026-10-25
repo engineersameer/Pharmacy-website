@@ -1,7 +1,6 @@
 import { useMutation } from '@tanstack/react-query'
 import {
   AlertTriangle,
-  ArrowLeft,
   Bike,
   Check,
   Copy,
@@ -19,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/compone
 import { ApiError } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { ACTION_LABEL, fullTime, localPhone, STATUS_LABEL, STATUS_STYLE, timeAgo, whatsappLink } from '../format'
+import { BackLink } from '../back-link'
 import { useStaffApi } from '../staff-api'
 import type { OrderStatus, StaffOrder, StaffPrescription } from '../types'
 import { PrescriptionFiles } from './prescription-files'
@@ -50,12 +50,16 @@ export function OrderDetail({
 
   return (
     <article className="flex flex-col gap-6" aria-labelledby={`order-${order.id}-title`}>
+      {onBack && (
+        <BackLink
+          onClick={(e) => {
+            e.preventDefault()
+            onBack()
+          }}
+          className="-mb-3 lg:hidden"
+        />
+      )}
       <header className="flex flex-wrap items-start gap-3">
-        {onBack && (
-          <button type="button" onClick={onBack} className={cn(buttonVariants({ size: 'icon', variant: 'ghost' }), 'lg:hidden')} aria-label="Back to orders">
-            <ArrowLeft />
-          </button>
-        )}
         <div className="mr-auto">
           <h2 id={`order-${order.id}-title`} className="text-[1.8rem] leading-tight">
             Order #{order.id}

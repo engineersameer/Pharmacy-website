@@ -3,6 +3,7 @@ import { Menu, Moon, Sun, X } from 'lucide-react'
 import { useState } from 'react'
 import { BrandMark } from '@/components/brand-mark'
 import { buttonVariants } from '@/components/ui/button'
+import { useStore } from '@/hooks/use-store'
 import { useTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
 
@@ -14,6 +15,7 @@ const links = [
 ]
 
 export function Header() {
+  const store = useStore()
   const { theme, toggle } = useTheme()
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -32,9 +34,9 @@ export function Header() {
           scrolled && 'min-h-16 rounded-full border shadow-[var(--shadow)] md:px-6',
         )}
       >
-        <a href="#top" className="mr-auto inline-flex items-center gap-2.5 font-heading text-[1.4rem] font-semibold text-foreground" aria-label="CarePoint Pharmacy home">
+        <a href="#top" className="mr-auto inline-flex min-w-0 items-center gap-2.5 font-heading text-[1.2rem] font-semibold text-foreground sm:text-[1.4rem]" aria-label={`${store.name} home`}>
           <BrandMark />
-          <span>CarePoint</span>
+          <span className="truncate">{store.name}</span>
         </a>
 
         <nav aria-label="Main" className="hidden items-center gap-1 lg:flex" onMouseLeave={() => setActive(null)}>

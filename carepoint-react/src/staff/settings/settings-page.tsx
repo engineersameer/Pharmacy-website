@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Clock, Save, Store } from 'lucide-react'
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
 import { hoursLabel } from '@/lib/hours'
 import { cn } from '@/lib/utils'
+import { BackLink } from '../back-link'
 import { fullTime } from '../format'
 import { useStaffApi } from '../staff-api'
 import type { StaffHours, StoreSettings } from '../types'
@@ -17,9 +18,10 @@ const input =
 
 const errorText = (e: unknown) => (e instanceof ApiError ? Object.values(e.fields)[0] || e.message : 'Could not save. Check your internet.')
 
-export function SettingsPage() {
+export function SettingsPage({ onBack }: { onBack: (e: MouseEvent<HTMLAnchorElement>) => void }) {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <BackLink onClick={onBack} className="-mb-3" />
       <h1 className="text-[2rem]">Store settings</h1>
       <p className="-mt-3 text-muted-foreground">Changes show on the public website straight away.</p>
       <StoreForm />
@@ -61,6 +63,7 @@ function StoreForm() {
       }),
     onSuccess: (data) => {
       qc.setQueryData(['store'], data)
+      void qc.invalidateQueries({ queryKey: ['public-store'] }) // name in the top bar and footer
       toast.success('Store details saved')
     },
     onError: (e) => toast.error(errorText(e)),

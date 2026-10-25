@@ -1,4 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import { api } from '@/lib/api'
 import { storeInfo as defaultStoreInfo } from '@/lib/mock-api'
 import type { StoreInfo } from '@/lib/types'
@@ -11,6 +11,9 @@ const StoreContext = createContext<StoreInfo>(defaultStoreInfo)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const { data } = useApi(api.getStoreInfo, defaultStoreInfo)
+  useEffect(() => {
+    document.title = data.name
+  }, [data.name])
   return <StoreContext.Provider value={data}>{children}</StoreContext.Provider>
 }
 

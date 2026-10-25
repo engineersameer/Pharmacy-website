@@ -5,6 +5,7 @@ import { GlassCard } from '@/components/shared/glass-card'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
 import { useAuth } from './auth'
+import { useStoreName } from './use-store-name'
 
 const RESEND_SECONDS = 60
 const field =
@@ -12,6 +13,7 @@ const field =
 
 export function LoginPage() {
   const { requestCode, verifyCode } = useAuth()
+  const storeName = useStoreName()
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -73,7 +75,7 @@ export function LoginPage() {
       <div className="w-full max-w-[420px]">
         <div className="mb-6 flex items-center justify-center gap-2.5 font-heading text-2xl font-semibold">
           <BrandMark />
-          CarePoint <span className="rounded-full bg-secondary px-2.5 py-0.5 font-sans text-xs font-semibold tracking-wide text-secondary-foreground uppercase">Staff</span>
+          {storeName} <span className="rounded-full bg-secondary px-2.5 py-0.5 font-sans text-xs font-semibold tracking-wide text-secondary-foreground uppercase">Staff</span>
         </div>
 
         <GlassCard spotlight={false} className="p-7 sm:p-9">
@@ -169,7 +171,7 @@ export function LoginPage() {
             </form>
           )}
         </GlassCard>
-        <p className="mt-6 text-center text-xs text-muted-foreground">For CarePoint staff only.</p>
+        <p className="mt-6 text-center text-xs text-muted-foreground">For {storeName} staff only.</p>
       </div>
     </main>
   )
