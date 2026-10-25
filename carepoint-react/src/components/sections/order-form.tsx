@@ -47,7 +47,7 @@ export function OrderForm() {
     { key: 'name', ok: () => name.trim().length >= 2, message: 'Please enter your name.', focus: () => nameRef.current?.focus() },
     { key: 'phone', ok: () => phone.replace(/\D/g, '').length >= 10, message: 'Please enter a valid mobile number.', focus: () => phoneRef.current?.focus() },
     ...(mode === 'number' && !noNumber
-      ? [{ key: 'prescriptionNumber', ok: () => prescriptionNumber.trim().length >= 3, message: 'Please enter your prescription number.', focus: () => numberRef.current?.focus() }]
+      ? [{ key: 'prescriptionNumber', ok: () => /\d/.test(prescriptionNumber), message: 'Please enter your prescription number.', focus: () => numberRef.current?.focus() }]
       : []),
     ...(mode === 'upload'
       ? [{ key: 'files', ok: () => files.length > 0, message: 'Please add a photo of your prescription.', focus: () => uploadRef.current?.focus() }]

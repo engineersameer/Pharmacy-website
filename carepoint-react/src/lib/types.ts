@@ -25,7 +25,7 @@ export interface PrescriptionUploadRequest {
 export interface OrderResponse {
   id: number // the order number shown to the customer, e.g. 1001
   status: string
-  prescriptionNumbers: string[]
+  prescriptionNumbers: number[] // new uploads only: 1, 2, 3, …
 }
 
 /** Opening hours for one day. Times are "HH:MM". A closing time earlier than the

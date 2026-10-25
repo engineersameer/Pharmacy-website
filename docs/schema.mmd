@@ -30,8 +30,7 @@ erDiagram
     }
 
     PRESCRIPTIONS {
-        uuid id PK
-        varchar prescription_number UK "shown to customer after ordering"
+        bigint id PK "auto number from 1, shown to customer as prescription no."
         varchar file_path "uploaded photo or PDF in file storage"
         timestamp created_at
     }
@@ -39,7 +38,7 @@ erDiagram
     ORDER_PRESCRIPTIONS {
         int id PK
         bigint order_id FK
-        uuid prescription_id FK
+        bigint prescription_id FK
         timestamp created_at
     }
 

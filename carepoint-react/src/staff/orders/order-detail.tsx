@@ -254,7 +254,7 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
   const [found, setFound] = useState<StaffPrescription[] | null>(null)
 
   const attach = useMutation({
-    mutationFn: (n: string) => api.attachPrescription(order.id, n),
+    mutationFn: (n: number) => api.attachPrescription(order.id, n),
     onSuccess: (o, n) => {
       onChanged(o)
       setNumber('')
@@ -273,7 +273,7 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
   const attached = new Set(order.prescriptions.map((p) => p.id))
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (number.length === 8) attach.mutate(number)
+    if (number) attach.mutate(Number(number))
   }
 
   return (
@@ -319,12 +319,12 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
           <input
             id={`attach-${order.id}`}
             inputMode="numeric"
-            placeholder="8 digits, e.g. 20200870"
+            placeholder="e.g. 12"
             value={number}
-            onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').slice(0, 8))}
+            onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 12))}
             className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-field px-4 outline-none focus:border-primary"
           />
-          <Button type="submit" size="sm" className="h-11" disabled={attach.isPending || number.length !== 8}>
+          <Button type="submit" size="sm" className="h-11" disabled={attach.isPending || !number}>
             Attach
           </Button>
         </div>

@@ -20,7 +20,7 @@ URL map. Who may use each URL:
     POST /api/admin/orders/<id>/status
     POST /api/admin/orders/<id>/prescriptions    attach a prescription by number
     GET  /api/admin/prescriptions?phone=|number=
-    GET  /api/admin/prescriptions/<uuid>/file
+    GET  /api/admin/prescriptions/<id>/file
     GET/PATCH /api/admin/store
     GET/PUT   /api/admin/hours
 """
@@ -51,7 +51,7 @@ urlpatterns = [
     path("api/admin/orders/<int:pk>/prescriptions", orders_admin.OrderLinkPrescriptionView.as_view()),
     path("api/admin/prescriptions", orders_admin.PrescriptionSearchView.as_view()),
     path(
-        "api/admin/prescriptions/<uuid:pk>/file",
+        "api/admin/prescriptions/<int:pk>/file",
         orders_admin.PrescriptionFileView.as_view(),
         name="admin-prescription-file",
     ),

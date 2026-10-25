@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 
 from django.conf import settings
@@ -24,7 +23,7 @@ class RefillOrders(BaseTest):
         return self.client.post("/api/refills", {**BASE, **data}, format="json")
 
     def test_refill_with_number_links_the_prescription(self):
-        r = self.post(prescriptionNumber=self.prescription.prescription_number)
+        r = self.post(prescriptionNumber=str(self.prescription.id))
         self.assertEqual(r.status_code, 201, r.content)
         body = r.json()
         self.assertGreaterEqual(body["id"], 1001)
@@ -35,11 +34,11 @@ class RefillOrders(BaseTest):
         self.assertEqual(order.notes, "")
 
     def test_reply_contains_only_order_number_status_and_numbers(self):
-        r = self.post(prescriptionNumber=self.prescription.prescription_number)
+        r = self.post(prescriptionNumber=str(self.prescription.id))
         self.assertEqual(set(r.json()), {"id", "status", "prescriptionNumbers"})
 
     def test_unknown_number_is_accepted_silently(self):
-        unknown = "12345678" if self.prescription.prescription_number != "12345678" else "87654321"
+        unknown = str(self.prescription.id + 1000)
         r = self.post(prescriptionNumber=unknown)
         self.assertEqual(r.status_code, 201)
         order = Order.objects.get(pk=r.json()["id"])
@@ -47,8 +46,8 @@ class RefillOrders(BaseTest):
         self.assertIn(unknown, order.notes)  # staff can see what the customer typed
 
     def test_reply_never_reveals_whether_a_number_exists(self):
-        known = self.post(prescriptionNumber=self.prescription.prescription_number).json()
-        unknown = self.post(prescriptionNumber="11112222").json()
+        known = self.post(prescriptionNumber=str(self.prescription.id)).json()
+        unknown = self.post(prescriptionNumber=str(self.prescription.id + 1000)).json()
         for body in (known, unknown):
             body.pop("id")
         self.assertEqual(known, unknown)
@@ -101,8 +100,7 @@ class UploadOrders(BaseTest):
         self.assertEqual(r.status_code, 201, r.content)
         numbers = r.json()["prescriptionNumbers"]
         self.assertEqual(len(numbers), 2)
-        for n in numbers:
-            self.assertRegex(n, r"^[1-9]\d{7}$")
+        self.assertEqual(numbers[1], numbers[0] + 1)  # counting up
         order = Order.objects.get(pk=r.json()["id"])
         self.assertEqual(order.order_type, "new_prescription")
         self.assertEqual(order.notes, "Only the first two medicines")
@@ -201,6 +199,17 @@ class OrderNumbers(BaseTest):
         self.assertGreaterEqual(a, 1001)
         self.assertEqual(b, a + 1)
 
-    def test_prescription_number_format(self):
-        p = Prescription.objects.create(file="x.png")
-        self.assertTrue(re.fullmatch(r"[1-9]\d{7}", p.prescription_number))
+    def test_prescription_numbers_count_up(self):
+        a = Prescription.objects.create(file="a.png")
+        b = Prescription.objects.create(file="b.png")
+        self.assertGreaterEqual(a.id, 1)
+        self.assertEqual(b.id, a.id + 1)
+
+    def test_number_typed_with_spaces_or_leading_zeros_still_matches(self):
+        p = Prescription.objects.create(file="a.png")
+        r = self.client.post("/api/refills", {**BASE, "prescriptionNumber": f" 00{p.id} "}, format="json")
+        self.assertEqual(Order.objects.get(pk=r.json()["id"]).prescriptions.get(), p)
+
+    def test_huge_number_is_handled(self):
+        r = self.client.post("/api/refills", {**BASE, "prescriptionNumber": "9" * 15}, format="json")
+        self.assertEqual(r.status_code, 201)

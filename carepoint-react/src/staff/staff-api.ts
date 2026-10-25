@@ -34,7 +34,7 @@ export function useStaffApi() {
         const body = await res.json()
         return res.status === 409 ? { conflict: true as const, order: body.order as StaffOrder } : { conflict: false as const, order: body as StaffOrder }
       },
-      attachPrescription: (orderId: number, prescriptionNumber: string) =>
+      attachPrescription: (orderId: number, prescriptionNumber: number) =>
         json<StaffOrder>(`/admin/orders/${orderId}/prescriptions`, {
           method: 'POST',
           body: JSON.stringify({ prescriptionNumber }),

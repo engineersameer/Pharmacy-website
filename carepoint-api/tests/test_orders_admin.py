@@ -112,9 +112,9 @@ class AdminOrders(BaseTest):
     def test_attach_prescription_by_number(self):
         o = make_order()
         p = Prescription.objects.create(file="prescriptions/x.png")
-        r = self.ayesha.post(f"/api/admin/orders/{o.id}/prescriptions", {"prescriptionNumber": p.prescription_number}, format="json")
+        r = self.ayesha.post(f"/api/admin/orders/{o.id}/prescriptions", {"prescriptionNumber": p.id}, format="json")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual([x["number"] for x in r.json()["prescriptions"]], [p.prescription_number])
+        self.assertEqual([x["number"] for x in r.json()["prescriptions"]], [p.id])
 
     def test_warning_when_refill_has_no_prescription(self):
         o = make_order()
@@ -150,7 +150,14 @@ class AdminOrders(BaseTest):
         p = Prescription.objects.create(file="prescriptions/x.png")
         OrderPrescription.objects.create(order=o, prescription=p)
         r = self.ayesha.get("/api/admin/prescriptions", {"phone": "03001234567"})
-        self.assertEqual([x["number"] for x in r.json()], [p.prescription_number])
+        self.assertEqual([x["number"] for x in r.json()], [p.id])
+
+    def test_search_finds_orders_by_prescription_number(self):
+        o = make_order()
+        p = Prescription.objects.create(file="prescriptions/x.png")
+        OrderPrescription.objects.create(order=o, prescription=p)
+        r = self.ayesha.get(f"/api/admin/orders?q={p.id}")
+        self.assertIn(o.id, [x["id"] for x in r.json()["results"]])
 
 
 class PrescriptionFiles(BaseTest):

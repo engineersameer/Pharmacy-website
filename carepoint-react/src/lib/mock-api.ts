@@ -5,7 +5,7 @@ import type { OrderResponse, PrescriptionUploadRequest, RefillRequest, Review, S
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms))
 let nextOrderId = 1001
-const fakeNumber = () => String(10_000_000 + Math.floor(Math.random() * 90_000_000))
+let nextPrescription = 1
 
 export const storeInfo: StoreInfo = {
   name: 'CarePoint Pharmacy',
@@ -37,12 +37,12 @@ export const mockApi = {
     return storeInfo
   },
   getReviews: async () => reviews,
-  createRefill: async (data: RefillRequest): Promise<OrderResponse> => {
+  createRefill: async (_data: RefillRequest): Promise<OrderResponse> => {
     await wait(800)
-    return { id: nextOrderId++, status: 'received', prescriptionNumbers: data.prescriptionNumber ? [data.prescriptionNumber] : [] }
+    return { id: nextOrderId++, status: 'received', prescriptionNumbers: [] }
   },
   uploadPrescription: async (data: PrescriptionUploadRequest): Promise<OrderResponse> => {
     await wait(1200)
-    return { id: nextOrderId++, status: 'received', prescriptionNumbers: data.files.map(fakeNumber) }
+    return { id: nextOrderId++, status: 'received', prescriptionNumbers: data.files.map(() => nextPrescription++) }
   },
 }

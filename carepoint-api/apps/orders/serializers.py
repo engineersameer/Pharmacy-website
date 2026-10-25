@@ -59,15 +59,16 @@ class RefillCreateSerializer(_CustomerFields):
     so nobody can use the form to find out which numbers exist. Staff see the number
     in the notes and a warning on the order."""
 
-    prescriptionNumber = serializers.CharField(max_length=20, required=False, allow_blank=True)
+    prescriptionNumber = serializers.CharField(max_length=15, required=False, allow_blank=True)
 
     def validate_prescriptionNumber(self, value):
-        return "".join(ch for ch in value if ch.isdigit()) or None
+        digits = "".join(ch for ch in value if ch.isdigit()).lstrip("0")
+        return int(digits) if digits else None
 
     @transaction.atomic
     def create(self, data):
         number = data.get("prescriptionNumber")
-        prescription = Prescription.objects.filter(prescription_number=number).first() if number else None
+        prescription = Prescription.objects.filter(pk=number).first() if number else None
         notes = f"Customer entered prescription number {number}, not found." if number and not prescription else ""
         order = Order.objects.create(**self._order_fields(data, Order.Type.REFILL, notes))
         if prescription:
@@ -124,4 +125,4 @@ class OrderCreatedSerializer(serializers.ModelSerializer):
         # reply can't reveal whether the number the customer typed exists.
         if order.order_type != Order.Type.NEW_PRESCRIPTION:
             return []
-        return [p.prescription_number for p in order.prescriptions.order_by("created_at")]
+        return [p.id for p in order.prescriptions.order_by("id")]

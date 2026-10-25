@@ -48,9 +48,9 @@ class OrderListView(ListAPIView):
 
         q = self.request.query_params.get("q", "").strip()
         if q:
-            match = Q(customer_name__icontains=q) | Q(prescriptions__prescription_number=q)
-            if q.isdigit():
-                match |= Q(id=int(q))
+            match = Q(customer_name__icontains=q)
+            if q.isdigit() and len(q) <= 15:
+                match |= Q(id=int(q)) | Q(prescriptions__id=int(q))
             try:
                 match |= Q(customer_phone=normalize_pk_mobile(q))
             except DjangoValidationError:
@@ -128,7 +128,7 @@ class OrderLinkPrescriptionView(APIView):
         order = get_object_or_404(Order, pk=pk)
         data = LinkPrescriptionSerializer(data=request.data)
         data.is_valid(raise_exception=True)
-        prescription = Prescription.objects.filter(prescription_number=data.validated_data["prescriptionNumber"].strip()).first()
+        prescription = Prescription.objects.filter(pk=data.validated_data["prescriptionNumber"]).first()
         if prescription is None:
             raise ValidationError({"prescriptionNumber": "No prescription has this number."})
         OrderPrescription.objects.get_or_create(order=order, prescription=prescription)
@@ -145,7 +145,9 @@ class PrescriptionSearchView(APIView):
         phone = request.query_params.get("phone", "").strip()
         number = request.query_params.get("number", "").strip()
         if number:
-            qs = Prescription.objects.filter(prescription_number=number)
+            if not number.isdigit() or len(number) > 15:
+                raise ValidationError({"number": "Enter the prescription number."})
+            qs = Prescription.objects.filter(pk=int(number))
         elif phone:
             try:
                 phone = normalize_pk_mobile(phone)
@@ -158,7 +160,7 @@ class PrescriptionSearchView(APIView):
 
 
 class PrescriptionFileView(APIView):
-    """GET /api/admin/prescriptions/<uuid>/file: the uploaded photo or PDF, admins only."""
+    """GET /api/admin/prescriptions/<id>/file: the uploaded photo or PDF, admins only."""
 
     def get(self, request, pk):
         prescription = get_object_or_404(Prescription, pk=pk)
@@ -168,7 +170,7 @@ class PrescriptionFileView(APIView):
         except FileNotFoundError:
             raise Http404("File missing.")
         response = FileResponse(handle, content_type=CONTENT_TYPES.get(ext, "application/octet-stream"))
-        filename = f"prescription-{prescription.prescription_number}.{ext}"
+        filename = f"prescription-{prescription.id}.{ext}"
         if ext == "pdf":
             # PDFs download instead of opening in a tab, so a crafted PDF can't run anything in our site
             response["Content-Disposition"] = f'attachment; filename="{filename}"'

@@ -1,7 +1,5 @@
 """Every admin URL must refuse anyone who isn't a logged-in, active admin."""
 
-import uuid
-
 from apps.accounts.models import User
 
 from .helpers import BaseTest, auth_client, make_admin
@@ -14,7 +12,7 @@ ADMIN_URLS = [
     ("post", "/api/admin/orders/1001/status"),
     ("post", "/api/admin/orders/1001/prescriptions"),
     ("get", "/api/admin/prescriptions?phone=03001234567"),
-    ("get", f"/api/admin/prescriptions/{uuid.uuid4()}/file"),
+    ("get", "/api/admin/prescriptions/1/file"),
     ("get", "/api/admin/store"),
     ("patch", "/api/admin/store"),
     ("get", "/api/admin/hours"),

@@ -6,7 +6,7 @@ from .statuses import allowed_next
 
 
 class AdminPrescriptionSerializer(serializers.ModelSerializer):
-    number = serializers.CharField(source="prescription_number")
+    number = serializers.IntegerField(source="id")
     fileUrl = serializers.SerializerMethodField()
     fileType = serializers.SerializerMethodField()
     createdAt = serializers.DateTimeField(source="created_at")
@@ -74,7 +74,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
                 warnings.append(
                     {
                         "code": "phone_mismatch",
-                        "message": f"Prescription {p.prescription_number} was ordered before from a different phone: "
+                        "message": f"Prescription {p.id} was ordered before from a different phone: "
                         + ", ".join(other_phones)
                         + ". Check with the customer before preparing it.",
                     }
@@ -89,4 +89,4 @@ class StatusChangeSerializer(serializers.Serializer):
 
 
 class LinkPrescriptionSerializer(serializers.Serializer):
-    prescriptionNumber = serializers.RegexField(r"^\s*\d{8}\s*$", error_messages={"invalid": "Enter the 8-digit number."})
+    prescriptionNumber = serializers.IntegerField(min_value=1, error_messages={"invalid": "Enter the prescription number."})

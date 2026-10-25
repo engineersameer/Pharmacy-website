@@ -1,4 +1,3 @@
-import secrets
 import uuid
 
 from django.db import models
@@ -63,19 +62,12 @@ def prescription_upload_path(instance, filename):
     return f"prescriptions/{timezone.now():%Y/%m}/{uuid.uuid4().hex}.{ext}"
 
 
-def new_prescription_number() -> str:
-    """8 random digits, never starting with 0. Easy to read out on the phone, hard to guess."""
-    while True:
-        number = str(secrets.randbelow(90_000_000) + 10_000_000)
-        if not Prescription.objects.filter(prescription_number=number).exists():
-            return number
-
-
 class Prescription(models.Model):
-    """One uploaded prescription photo or PDF, with the number the customer uses for refills."""
+    """One uploaded prescription photo or PDF.
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    prescription_number = models.CharField(max_length=8, unique=True, default=new_prescription_number)
+    Its id is the prescription number the customer uses for refills: 1, 2, 3, …"""
+
+    id = models.BigAutoField(primary_key=True)
     file = models.FileField(upload_to=prescription_upload_path, max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -84,7 +76,7 @@ class Prescription(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return self.prescription_number
+        return f"Prescription {self.id}"
 
 
 class OrderPrescription(models.Model):

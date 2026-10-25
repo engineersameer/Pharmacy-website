@@ -9,8 +9,8 @@ export interface Admin {
 }
 
 export interface StaffPrescription {
-  id: string
-  number: string
+  id: number
+  number: number // same as id: the prescription number 1, 2, 3, …
   fileUrl: string // admin-only, needs the login token
   fileType: 'image' | 'pdf'
   createdAt: string

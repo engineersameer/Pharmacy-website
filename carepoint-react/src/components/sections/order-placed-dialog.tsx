@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 export type PlacedOrder = {
   firstName: string
   orderNumber: number
-  prescriptionNumbers: string[]
+  prescriptionNumbers: number[]
   method: DeliveryMethod
   deliveryAddress?: string
   kind: 'refill' | 'upload'
