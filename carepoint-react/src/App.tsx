@@ -6,6 +6,7 @@ import { HowItWorks } from '@/components/sections/how-it-works'
 import { Refill } from '@/components/sections/refill'
 import { Reviews } from '@/components/sections/reviews'
 import { Services } from '@/components/sections/services'
+import { SiteBackground } from '@/components/shared/site-background'
 import { StoreProvider } from '@/hooks/use-store'
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
     // reducedMotion="user": motion drops movement for people who ask their device for less
     <MotionConfig reducedMotion="user">
       <StoreProvider>
+        <SiteBackground />
         <a
           href="#main"
           className="absolute -top-24 left-4 z-[100] rounded-xl bg-primary px-4 py-2.5 text-primary-foreground focus:top-3"

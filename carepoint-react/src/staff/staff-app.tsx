@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { Toaster } from 'sonner'
 import { BrandMark } from '@/components/brand-mark'
 import { footerLink, FooterBar, FooterCard } from '@/components/shared/footer-bar'
+import { SiteBackground } from '@/components/shared/site-background'
 import { buttonVariants } from '@/components/ui/button'
 import { useTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
@@ -12,7 +13,6 @@ import { AuthProvider, useAuth } from './auth'
 import { LoginPage } from './login-page'
 import { OrdersPage } from './orders/orders-page'
 import { SettingsPage } from './settings/settings-page'
-import { StaffBackground } from './staff-background'
 import type { StaffOrder } from './types'
 import { useStoreName } from './use-store-name'
 
@@ -35,7 +35,7 @@ export default function StaffApp() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StaffBackground />
+      <SiteBackground animatedSquares />
       <AuthProvider>
         <Gate />
       </AuthProvider>

@@ -50,12 +50,7 @@ export function Hero() {
       onPointerLeave={onLeave}
       className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-32"
     >
-      {/* Background: faint grid and two slow aurora glows */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10">
-        <div className="bg-grid absolute inset-0" />
-        <div className="absolute -top-40 left-[10%] size-[520px] rounded-full bg-(--aurora-1) blur-[120px] motion-safe:animate-[aurora_18s_ease-in-out_infinite]" />
-        <div className="absolute top-20 right-[-10%] size-[460px] rounded-full bg-(--aurora-2) blur-[120px] motion-safe:animate-[aurora_22s_ease-in-out_infinite_reverse]" />
-      </div>
+      {/* The grid and glows behind this section now come from <SiteBackground />, fixed to the screen */}
 
       <div className="mx-auto grid max-w-[1180px] items-center gap-12 px-4 md:px-8 lg:grid-cols-[1.15fr_1fr] lg:gap-14">
         <div>
