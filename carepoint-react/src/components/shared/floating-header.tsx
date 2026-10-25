@@ -37,11 +37,15 @@ export function FloatingHeader({
         )}
       >
         {children}
-        <motion.div
-          aria-hidden="true"
-          className={cn('absolute inset-x-0 -bottom-px h-0.5 origin-left bg-primary', scrolled && 'inset-x-8 rounded-full')}
-          style={{ scaleX: progress }}
-        />
+        {/* Only once scrolled: on a page too short to scroll, the progress would read as 100%
+            and draw a full line under the header */}
+        {scrolled && (
+          <motion.div
+            aria-hidden="true"
+            className="absolute inset-x-8 -bottom-px h-0.5 origin-left rounded-full bg-primary"
+            style={{ scaleX: progress }}
+          />
+        )}
       </div>
       {after}
     </header>
