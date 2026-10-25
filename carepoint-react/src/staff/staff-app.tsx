@@ -3,7 +3,7 @@ import { Bell, BellOff, ClipboardList, ExternalLink, LogOut, Moon, Settings, Sun
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { Toaster } from 'sonner'
 import { BrandMark } from '@/components/brand-mark'
-import { footerLink, FooterBar } from '@/components/shared/footer-bar'
+import { footerLink, FooterBar, FooterCard } from '@/components/shared/footer-bar'
 import { buttonVariants } from '@/components/ui/button'
 import { useTheme } from '@/hooks/use-theme'
 import { cn } from '@/lib/utils'
@@ -143,25 +143,27 @@ function Dashboard() {
         {onSettings && <SettingsPage onBack={go('/staff')} />}
       </main>
 
-      <FooterBar
-        left={
-          <span>
-            © {new Date().getFullYear()} {storeName} · Staff dashboard
-          </span>
-        }
-        right={
-          <>
-            {nav.map((n) => (
-              <a key={n.to} href={n.to} onClick={go(n.to)} className={footerLink}>
-                {n.label}
+      <FooterCard className="pt-6">
+        <FooterBar
+          left={
+            <span>
+              © {new Date().getFullYear()} {storeName} · Staff dashboard
+            </span>
+          }
+          right={
+            <>
+              {nav.map((n) => (
+                <a key={n.to} href={n.to} onClick={go(n.to)} className={footerLink}>
+                  {n.label}
+                </a>
+              ))}
+              <a href="/" target="_blank" rel="noreferrer" className={`${footerLink} inline-flex items-center gap-1`}>
+                Public website <ExternalLink className="size-3.5" />
               </a>
-            ))}
-            <a href="/" target="_blank" rel="noreferrer" className={`${footerLink} inline-flex items-center gap-1`}>
-              Public website <ExternalLink className="size-3.5" />
-            </a>
-          </>
-        }
-      />
+            </>
+          }
+        />
+      </FooterCard>
     </div>
   )
 }
