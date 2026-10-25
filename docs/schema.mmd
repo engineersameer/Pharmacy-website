@@ -1,19 +1,30 @@
-%% CarePoint Pharmacy — database schema (simple version, for review)
-%% Django DRF + PostgreSQL.
+%% Pharmacy website — database schema (matches the live tables in carepoint-api)
+%% Django DRF + PostgreSQL 16. Column names and types are exactly as in the database.
 %% Relationship legend:  ||--o{  one to many   |o--o{  optional one to many
 
 erDiagram
     ADMIN_USERS {
-        int id PK "Django built-in user table"
-        varchar username UK
-        varchar password "unused, login is email + OTP"
+        bigint id PK "Django built-in user table"
+        varchar username UK "same as email"
+        varchar password "unused, login is email + one-time code"
         varchar first_name
         varchar last_name
         varchar email UK "used to log in"
-        bool is_active
+        bool is_staff "must be true to use the staff dashboard"
+        bool is_active "false = removed admin, can't log in"
         bool is_superuser "Django built-in, not used for roles yet"
         timestamp last_login
         timestamp date_joined
+    }
+
+    ADMIN_LOGIN_CODES {
+        bigint id PK
+        bigint admin_id FK
+        varchar code_hash "6-digit code, stored scrambled"
+        timestamp expires_at "10 minutes after created"
+        smallint attempts "code cancelled after 5 tries"
+        timestamp used_at "empty until used, works once"
+        timestamp created_at
     }
 
     ORDERS {
@@ -23,62 +34,63 @@ erDiagram
         varchar order_type "new_prescription | refill"
         varchar method "pickup | delivery"
         text delivery_address "as typed by customer, empty for pickup"
-        text notes "optional"
+        text notes "optional, also notes an unknown prescription no."
         varchar status "received | confirmed | ready | out_for_delivery | completed | cancelled"
         timestamp created_at
-        timestamp updated_at
+        timestamp updated_at "live dashboard asks: changed since?"
     }
 
     PRESCRIPTIONS {
         bigint id PK "auto number from 1, shown to customer as prescription no."
-        varchar file_path "uploaded photo or PDF in file storage"
+        varchar file "path of the uploaded photo or PDF, private storage"
         timestamp created_at
     }
 
     ORDER_PRESCRIPTIONS {
-        int id PK
+        bigint id PK
         bigint order_id FK
         bigint prescription_id FK
         timestamp created_at
     }
 
     STORE_SETTINGS {
-        int id PK "always 1, edits update this same row"
+        smallint id PK "always 1, edits update this same row"
         varchar name
         varchar phone
         text address
-        int years_serving "shown on website"
-        int avg_refill_minutes "shown on website"
-        int updated_by FK "last admin who edited"
+        smallint years_serving "shown on website"
+        smallint avg_refill_minutes "shown on website"
+        bigint updated_by_id FK "last admin who edited, optional"
         timestamp updated_at
     }
 
     OPENING_HOURS {
-        int id PK
-        smallint day_of_week UK "0 Sunday to 6 Saturday"
-        time opens_at
-        time closes_at
+        bigint id PK
+        smallint day_of_week UK "0 Sunday to 6 Saturday, 7 rows"
+        time opens_at "empty when closed"
+        time closes_at "earlier than opens_at = past midnight"
         bool is_closed
-        int updated_by FK "last admin who edited"
+        bigint updated_by_id FK "last admin who edited, optional"
         timestamp updated_at
     }
 
-    ADMIN_LOGIN_CODES {
-        int id PK
-        int admin_id FK
-        varchar code_hash "6-digit code, stored scrambled"
-        timestamp expires_at "10 minutes after created"
-        smallint attempts "cancelled after 5 wrong tries"
-        timestamp used_at "empty until used, works once"
-        timestamp created_at
-    }
-
+    ADMIN_USERS ||--o{ ADMIN_LOGIN_CODES : "requests"
     ORDERS ||--o{ ORDER_PRESCRIPTIONS : "includes"
     PRESCRIPTIONS ||--o{ ORDER_PRESCRIPTIONS : "used in"
     ADMIN_USERS |o--o{ STORE_SETTINGS : "last edited by"
     ADMIN_USERS |o--o{ OPENING_HOURS : "last edited by"
-    ADMIN_USERS ||--o{ ADMIN_LOGIN_CODES : "requests"
 
-%% Login: admin enters email, gets a code (terminal in development, email in production),
-%% then stays logged in with JWT: 15-minute access token + 14-day refresh token in a secure cookie.
-%% JWT logout blacklist tables are created automatically by djangorestframework-simplejwt.
+%% Rules the database itself enforces:
+%%   orders: delivery orders must have an address, pickup orders must not
+%%   order_prescriptions: the same prescription can't be added to the same order twice
+%%   order_prescriptions.prescription_id: a prescription used in an order can't be deleted
+%%   store_settings: only one row (id must be 1)
+%%   opening_hours: one row per day (0 to 6); an open day needs both times
+
+%% Login: admin enters email, gets a code (shown on the login page and in the terminal
+%% in development, emailed in production), then stays logged in with JWT:
+%% 15-minute access token + 14-day refresh token in a secure cookie.
+
+%% Other tables created automatically (not part of this design):
+%%   token_blacklist_* (logged-out JWTs, from djangorestframework-simplejwt),
+%%   cache_table (rate limits), Django's auth_group / permissions / content types / migrations.
