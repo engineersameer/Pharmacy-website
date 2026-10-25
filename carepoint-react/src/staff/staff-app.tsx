@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from './auth'
 import { LoginPage } from './login-page'
 import { OrdersPage } from './orders/orders-page'
 import { SettingsPage } from './settings/settings-page'
+import { StaffBackground } from './staff-background'
 import type { StaffOrder } from './types'
 import { useStoreName } from './use-store-name'
 
@@ -34,6 +35,7 @@ export default function StaffApp() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <StaffBackground />
       <AuthProvider>
         <Gate />
       </AuthProvider>
