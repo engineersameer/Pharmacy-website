@@ -48,7 +48,7 @@ export function Hero() {
       ref={ref}
       onPointerMove={onMove}
       onPointerLeave={onLeave}
-      className="relative overflow-hidden pt-16 pb-20 lg:pt-24 lg:pb-32"
+      className="relative overflow-hidden pt-10 pb-20 lg:pt-8 lg:pb-32"
     >
       {/* The grid and glows behind this section now come from <SiteBackground />, fixed to the screen */}
 
@@ -93,7 +93,7 @@ export function Hero() {
           </motion.ul>
         </div>
 
-        <motion.div className="relative mx-auto w-full max-w-[460px]" style={{ y: parallax }}>
+        <motion.div className="relative mx-auto w-full max-w-[460px] lg:max-w-[420px] lg:[@media(max-height:820px)]:max-w-[330px]" style={{ y: parallax }}>
           <Capsule tiltX={tiltX} tiltY={tiltY} />
           <StatsCard />
         </motion.div>
