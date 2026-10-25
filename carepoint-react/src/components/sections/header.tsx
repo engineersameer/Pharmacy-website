@@ -29,9 +29,11 @@ export function Header() {
     <header className="sticky top-0 z-50 px-0 transition-[padding] duration-500 ease-luxe data-[scrolled=true]:px-3 data-[scrolled=true]:pt-3 md:data-[scrolled=true]:px-6" data-scrolled={scrolled}>
       <div
         className={cn(
-          'relative mx-auto flex min-h-[72px] max-w-[1180px] items-center gap-3 border-b border-glass-border px-4 backdrop-blur-xl backdrop-saturate-150 transition-[background-color,border-radius,box-shadow,min-height] duration-500 ease-luxe md:px-8',
-          'bg-[color-mix(in_srgb,var(--background)_72%,transparent)]',
-          scrolled && 'min-h-16 rounded-full border shadow-[var(--shadow)] md:px-6',
+          'relative mx-auto flex min-h-[72px] max-w-[1180px] items-center gap-3 border border-transparent px-4 transition-[background-color,border-color,border-radius,box-shadow,min-height,backdrop-filter] duration-500 ease-luxe md:px-8',
+          // At the top of the page the header has no box of its own, so the background shows
+          // through without any visible edges. Once scrolled it becomes the floating glass pill.
+          scrolled &&
+            'min-h-16 rounded-full border-glass-border bg-[color-mix(in_srgb,var(--background)_72%,transparent)] shadow-[var(--shadow)] backdrop-blur-xl backdrop-saturate-150 md:px-6',
         )}
       >
         <a href="#top" className="mr-auto inline-flex min-w-0 items-center gap-2.5 font-heading text-[1.2rem] font-semibold text-foreground sm:text-[1.4rem]" aria-label={`${store.name} home`}>
