@@ -2,6 +2,7 @@ import re
 from datetime import timedelta
 
 from django.core import mail
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
@@ -182,3 +183,38 @@ class StayingLoggedIn(BaseTest):
 
     def test_no_cookie_means_not_logged_in(self):
         self.assertEqual(APIClient().post("/api/auth/refresh").status_code, 401)
+
+
+class LocalTesting(BaseTest):
+    """On a developer laptop (debug on, codes in the terminal) every request prints a new code."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = make_admin()
+
+    def ask(self):
+        self.client.post("/api/auth/request-code", {"email": self.admin.email}, format="json")
+        return code_from_last_email()
+
+    @override_settings(DEBUG=True, EMAIL_MODE="terminal")
+    def test_every_request_gives_a_new_working_code(self):
+        first = self.ask()
+        second = self.ask()  # straight away, no waiting
+        self.assertEqual(len(mail.outbox), 2)
+        r = self.client.post("/api/auth/verify-code", {"email": self.admin.email, "code": second}, format="json")
+        self.assertEqual(r.status_code, 200)
+        if first != second:
+            r = APIClient().post("/api/auth/verify-code", {"email": self.admin.email, "code": first}, format="json")
+            self.assertEqual(r.status_code, 400)  # the older code stopped working
+
+    @override_settings(DEBUG=True, EMAIL_MODE="smtp", EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_real_emails_keep_the_strict_rules_even_in_debug(self):
+        self.ask()
+        self.client.post("/api/auth/request-code", {"email": self.admin.email}, format="json")
+        self.assertEqual(len(mail.outbox), 1)
+
+    @override_settings(DEBUG=False, EMAIL_MODE="terminal")
+    def test_server_without_debug_keeps_the_strict_rules(self):
+        self.ask()
+        self.client.post("/api/auth/request-code", {"email": self.admin.email}, format="json")
+        self.assertEqual(len(mail.outbox), 1)

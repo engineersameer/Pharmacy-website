@@ -6,9 +6,10 @@ import logging
 import secrets
 import threading
 from datetime import timedelta
+from email.utils import make_msgid, parseaddr
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMessage
 from django.db import connections
 from django.db.models import F, Sum
 from django.utils import timezone
@@ -30,16 +31,24 @@ def find_admin(email: str) -> User | None:
 
 
 def _send_code_email(email: str, code: str) -> None:
-    send_mail(
+    message = EmailMessage(
         subject=f"Your CarePoint login code: {code}",
-        message=(
+        body=(
             f"Your CarePoint admin login code is {code}\n\n"
             f"It works once and expires in {CFG['ttl_minutes']} minutes.\n"
             "If you didn't ask for this, you can ignore this email."
         ),
-        from_email=None,
-        recipient_list=[email],
+        to=[email],
+        # Set the Message-ID ourselves, using our email domain. Otherwise Django asks the
+        # computer for its network name, which can hang for a long time on a Mac.
+        headers={"Message-ID": make_msgid(domain=_sender_domain())},
     )
+    message.send()
+
+
+def _sender_domain() -> str:
+    address = parseaddr(settings.DEFAULT_FROM_EMAIL)[1]
+    return address.rsplit("@", 1)[-1] if "@" in address else "localhost"
 
 
 def _send_in_background(email: str, code: str) -> None:
@@ -60,6 +69,12 @@ def _send_in_background(email: str, code: str) -> None:
     threading.Thread(target=run, daemon=True).start()
 
 
+def _local_testing() -> bool:
+    """True only on a developer laptop: debug mode on AND codes printed in the terminal.
+    Never true on the real server, where DEBUG is off and codes are emailed."""
+    return settings.DEBUG and settings.EMAIL_MODE == "terminal"
+
+
 def issue_code(admin: User) -> bool:
     """Send a new code, unless this admin asked too often or already has a working code.
 
@@ -67,12 +82,16 @@ def issue_code(admin: User) -> bool:
     admin out just by asking for codes in their name."""
     now = timezone.now()
     codes = AdminLoginCode.objects.filter(admin=admin)
-    if codes.filter(created_at__gte=now - timedelta(hours=1)).count() >= CFG["max_per_hour"]:
-        return False
-    if codes.filter(created_at__gte=now - timedelta(seconds=CFG["resend_seconds"])).exists():
-        return False
-    if codes.filter(used_at__isnull=True, expires_at__gt=now, attempts__lt=CFG["max_attempts"]).exists():
-        return False  # the code already in their inbox still works
+    if _local_testing():
+        # On a developer laptop: always print a fresh code; the old one stops working
+        codes.filter(used_at__isnull=True, expires_at__gt=now).update(expires_at=now)
+    else:
+        if codes.filter(created_at__gte=now - timedelta(hours=1)).count() >= CFG["max_per_hour"]:
+            return False
+        if codes.filter(created_at__gte=now - timedelta(seconds=CFG["resend_seconds"])).exists():
+            return False
+        if codes.filter(used_at__isnull=True, expires_at__gt=now, attempts__lt=CFG["max_attempts"]).exists():
+            return False  # the code already in their inbox still works
 
     code = f"{secrets.randbelow(10 ** CFG['digits']):0{CFG['digits']}d}"
     AdminLoginCode.objects.create(
@@ -89,7 +108,7 @@ def check_code(admin: User, code: str) -> bool:
     codes = AdminLoginCode.objects.filter(admin=admin)
 
     tries_today = codes.filter(created_at__gte=now - timedelta(days=1)).aggregate(n=Sum("attempts"))["n"] or 0
-    if tries_today >= CFG["max_failed_per_day"]:
+    if tries_today >= CFG["max_failed_per_day"] and not _local_testing():
         log.warning("Login code guesses blocked for %s: too many tries today", admin.email)
         return False
 
