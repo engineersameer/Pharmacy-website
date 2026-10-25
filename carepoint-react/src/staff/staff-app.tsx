@@ -128,8 +128,17 @@ function Dashboard() {
             <span className="hidden max-w-40 truncate text-sm text-muted-foreground lg:inline" title={admin?.email}>
               {admin?.name}
             </span>
-            <button type="button" onClick={logout} className={buttonVariants({ size: 'icon', variant: 'ghost' })} aria-label="Log out" title="Log out">
+            <button
+              type="button"
+              onClick={logout}
+              className={cn(
+                buttonVariants({ size: 'sm', variant: 'ghost' }),
+                'size-10 px-0 hover:border-destructive hover:text-destructive sm:w-auto sm:px-3',
+              )}
+              aria-label="Log out"
+            >
               <LogOut />
+              <span className="hidden sm:inline">Log out</span>
             </button>
           </div>
         </div>
@@ -160,6 +169,9 @@ function Dashboard() {
               <a href="/" target="_blank" rel="noreferrer" className={`${footerLink} inline-flex items-center gap-1`}>
                 Public website <ExternalLink className="size-3.5" />
               </a>
+              <button type="button" onClick={logout} className={`${footerLink} inline-flex items-center gap-1 hover:text-destructive`}>
+                <LogOut className="size-3.5" /> Log out
+              </button>
             </>
           }
         />
