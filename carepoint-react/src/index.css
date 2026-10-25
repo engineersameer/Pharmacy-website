@@ -1,0 +1,268 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* ===== CarePoint — Clinical luxe theme =====
+   Dark first: midnight ink, one teal brand color, frosted glass.
+   Light mode is "pearl": same structure, softer colors.
+   The theme is switched with the `dark` class on <html>. */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-heading: "Playfair Display", Georgia, serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-eyebrow: var(--eyebrow);
+  --color-mint: var(--mint);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
+  --color-glass-border: var(--glass-border);
+  --color-field: var(--field);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  --ease-luxe: cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+
+/* Light ("pearl") */
+:root {
+  --background: #f4f7f8;
+  --foreground: #0b1f2a;
+  --card: rgba(255, 255, 255, 0.62);
+  --card-foreground: #0b1f2a;
+  --popover: #ffffff;
+  --popover-foreground: #0b1f2a;
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(15, 118, 110, 0.1);
+  --secondary-foreground: #115e59;
+  --muted: rgba(11, 31, 42, 0.05);
+  --muted-foreground: #4a5d66;
+  --accent: rgba(15, 118, 110, 0.1);
+  --accent-foreground: #115e59;
+  --eyebrow: #0f766e;
+  --mint: #115e59;
+  --destructive: #b91c1c;
+  --border: rgba(11, 31, 42, 0.09);
+  --input: rgba(11, 31, 42, 0.2);
+  --ring: #0f766e;
+
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(11, 31, 42, 0.09);
+  --glass-edge: linear-gradient(160deg, rgba(15, 118, 110, 0.25), rgba(11, 31, 42, 0.04) 45%);
+  --field: #ffffff;
+  --shadow: 0 1px 2px rgba(11, 31, 42, 0.05), 0 20px 50px -24px rgba(11, 31, 42, 0.25);
+  --glow: 0 0 0 1px rgba(15, 118, 110, 0.3), 0 10px 30px -8px rgba(15, 118, 110, 0.45);
+  --spot: rgba(15, 118, 110, 0.12);
+  --aurora-1: rgba(15, 118, 110, 0.14);
+  --aurora-2: rgba(45, 212, 191, 0.12);
+  --grid-line: rgba(11, 31, 42, 0.05);
+
+  --radius: 1.25rem;
+}
+
+/* Dark ("midnight ink"), the default */
+.dark {
+  color-scheme: dark;
+  --background: #0b1f2a;
+  --foreground: #f4f7f8;
+  --card: rgba(255, 255, 255, 0.045);
+  --card-foreground: #f4f7f8;
+  --popover: #0f2733;
+  --popover-foreground: #f4f7f8;
+  --primary: #2dd4bf;
+  --primary-hover: #5eead4;
+  --primary-foreground: #0b1f2a;
+  --secondary: rgba(45, 212, 191, 0.14);
+  --secondary-foreground: #a7f3d0;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: #a9bcc4;
+  --accent: rgba(45, 212, 191, 0.12);
+  --accent-foreground: #a7f3d0;
+  --eyebrow: #7fe3c9;
+  --mint: #a7f3d0;
+  --destructive: #fca5a5;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.16);
+  --ring: #5eead4;
+
+  --glass: rgba(255, 255, 255, 0.045);
+  --glass-strong: rgba(255, 255, 255, 0.07);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-edge: linear-gradient(160deg, rgba(94, 234, 212, 0.35), rgba(255, 255, 255, 0.04) 45%);
+  --field: rgba(7, 22, 32, 0.6);
+  --shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  --glow: 0 0 0 1px rgba(45, 212, 191, 0.4), 0 10px 40px -8px rgba(45, 212, 191, 0.55);
+  --spot: rgba(94, 234, 212, 0.16);
+  --aurora-1: rgba(45, 212, 191, 0.16);
+  --aurora-2: rgba(14, 116, 144, 0.22);
+  --grid-line: rgba(255, 255, 255, 0.035);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    scroll-behavior: smooth;
+    scroll-padding-top: 96px;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    overflow-x: hidden;
+    line-height: 1.65;
+    transition: background-color 0.4s var(--ease-luxe), color 0.4s var(--ease-luxe);
+  }
+  h1, h2 {
+    font-family: var(--font-heading);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  h3 {
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    line-height: 1.2;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+    border-radius: 8px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ===== Glass surface ===== */
+@utility glass {
+  position: relative;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  transition: background-color 0.4s var(--ease-luxe), border-color 0.4s var(--ease-luxe),
+    transform 0.35s var(--ease-luxe), box-shadow 0.35s var(--ease-luxe);
+
+  /* Gradient hairline on the edge, brighter on hover */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    background: var(--glass-edge);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.5;
+    transition: opacity 0.35s var(--ease-luxe);
+  }
+  &:hover::after {
+    opacity: 1;
+  }
+}
+
+@utility shadow-glow {
+  box-shadow: var(--glow);
+}
+
+/* Small uppercase label above headings, with a short line in front */
+@utility eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--eyebrow);
+  &::before {
+    content: "";
+    width: 28px;
+    height: 1px;
+    background: var(--primary);
+  }
+}
+
+/* Faint grid behind the hero, fading out at the edges */
+@utility bg-grid {
+  background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+}
+
+/* Shine that sweeps across primary buttons on hover */
+@utility shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
+    transform: translateX(-120%);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    &:hover::after {
+      transform: translateX(120%);
+      transition: transform 0.8s var(--ease-luxe);
+    }
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes ping-soft {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 60%, transparent); }
+  80%, 100% { box-shadow: 0 0 0 10px transparent; }
+}
+@keyframes aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, -6%) scale(1.08); }
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
