@@ -11,7 +11,7 @@ import { OrderForm } from './order-form'
 
 export function Refill() {
   return (
-    <section id="refill" aria-labelledby="refill-title" className="border-y border-glass-border py-22 lg:py-32">
+    <section id="refill" aria-labelledby="refill-title" className="py-22 lg:py-32">
       <div className="mx-auto grid max-w-[1180px] items-start gap-12 px-4 md:px-8 lg:grid-cols-[1.1fr_1fr] lg:gap-18">
         <Reveal>
           <OrderForm />

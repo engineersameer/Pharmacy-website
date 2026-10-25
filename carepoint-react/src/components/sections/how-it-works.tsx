@@ -25,7 +25,7 @@ export function HowItWorks() {
   const length = reduce ? 1 : drawn
 
   return (
-    <section id="how" aria-labelledby="how-title" className="border-y border-glass-border py-22 lg:py-32">
+    <section id="how" aria-labelledby="how-title" className="py-22 lg:py-32">
       <div className="mx-auto max-w-[1180px] px-4 md:px-8">
         <SectionHeading eyebrow="How it works" title="Refills in three easy steps" id="how-title" />
 
