@@ -10,7 +10,7 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .login_codes import check_code, find_admin, issue_code
+from .login_codes import check_code, find_admin, issue_code, local_testing
 from .models import User
 
 COOKIE = settings.REFRESH_COOKIE
@@ -64,9 +64,20 @@ class RequestCodeView(_PublicAuthView):
         s = EmailSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         admin = find_admin(s.validated_data["email"])
-        if admin:
-            issue_code(admin)
-        return Response({"detail": GENERIC_SENT})
+        code = issue_code(admin) if admin else None
+
+        body = {"detail": GENERIC_SENT}
+        if local_testing():
+            # Developer laptop only (debug on, codes printed in the terminal): show the code on
+            # the login page too. Never happens on the real server, where codes are emailed.
+            if code:
+                body["devCode"] = code
+            elif admin is None:
+                body["devHint"] = (
+                    "This email isn't a staff admin. Add it with: "
+                    f"manage.py add_admin {s.validated_data['email'].strip().lower()}"
+                )
+        return Response(body)
 
 
 class VerifyCodeView(_PublicAuthView):

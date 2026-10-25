@@ -1,4 +1,4 @@
-import { ArrowLeft, Mail } from 'lucide-react'
+import { ArrowLeft, Mail, Terminal } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { BrandMark } from '@/components/brand-mark'
 import { GlassCard } from '@/components/shared/glass-card'
@@ -20,6 +20,7 @@ export function LoginPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [wait, setWait] = useState(0)
+  const [dev, setDev] = useState<{ devCode?: string; devHint?: string }>({})
   const codeRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -44,9 +45,10 @@ export function LoginPage() {
     }
     setBusy(true)
     try {
-      await requestCode(email.trim())
+      const result = await requestCode(email.trim())
+      setDev(result)
       setStep('code')
-      setCode('')
+      setCode(result.devCode ?? '') // on a developer laptop the code is filled in for you
       setWait(RESEND_SECONDS)
     } catch (err) {
       setError(message(err))
@@ -131,6 +133,7 @@ export function LoginPage() {
                 If <span className="font-medium text-foreground">{email.trim()}</span> is a staff email, a code is on its way. It
                 works for 10 minutes.
               </p>
+              {(dev.devCode || dev.devHint) && <DevCodeNote code={dev.devCode} hint={dev.devHint} />}
               <label htmlFor="staff-code" className="mb-2 block text-[0.92rem] font-medium">
                 6-digit code
               </label>
@@ -174,5 +177,24 @@ export function LoginPage() {
         <p className="mt-6 text-center text-xs text-muted-foreground">For {storeName} staff only.</p>
       </div>
     </main>
+  )
+}
+
+/** Only shown on a developer laptop: the backend never sends these on the real server. */
+function DevCodeNote({ code, hint }: { code?: string; hint?: string }) {
+  return (
+    <div className="mb-6 rounded-xl border border-dashed border-primary/50 bg-secondary px-4 py-3 text-[0.88rem] text-secondary-foreground">
+      <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+        <Terminal className="size-3.5" /> Development only
+      </p>
+      {code ? (
+        <p className="m-0">
+          Your code is <span className="font-semibold tracking-[0.2em] text-foreground">{code}</span>. It's filled in below, just press Log
+          in. On the real website it arrives by email instead.
+        </p>
+      ) : (
+        <p className="m-0 break-words">{hint}</p>
+      )}
+    </div>
   )
 }

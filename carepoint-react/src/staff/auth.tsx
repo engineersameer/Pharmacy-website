@@ -12,7 +12,8 @@ const BASE = import.meta.env.VITE_API_URL ?? '/api'
 type AuthState = {
   admin: Admin | null
   checking: boolean
-  requestCode: (email: string) => Promise<void>
+  /** devCode / devHint only come back on a developer laptop, never from the real server */
+  requestCode: (email: string) => Promise<{ devCode?: string; devHint?: string }>
   verifyCode: (email: string, code: string) => Promise<void>
   logout: () => Promise<void>
   /** fetch() for admin endpoints: adds the token, renews it when needed */
@@ -112,6 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestCode: async (email) => {
         const res = await postJson('/auth/request-code', { email })
         if (!res.ok) throw await errorFrom(res)
+        const body = await res.json()
+        return { devCode: body.devCode, devHint: body.devHint }
       },
       verifyCode: async (email, code) => {
         const res = await postJson('/auth/verify-code', { email, code })

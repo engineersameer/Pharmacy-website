@@ -69,36 +69,37 @@ def _send_in_background(email: str, code: str) -> None:
     threading.Thread(target=run, daemon=True).start()
 
 
-def _local_testing() -> bool:
+def local_testing() -> bool:
     """True only on a developer laptop: debug mode on AND codes printed in the terminal.
     Never true on the real server, where DEBUG is off and codes are emailed."""
     return settings.DEBUG and settings.EMAIL_MODE == "terminal"
 
 
-def issue_code(admin: User) -> bool:
-    """Send a new code, unless this admin asked too often or already has a working code.
+def issue_code(admin: User) -> str | None:
+    """Send a new code and return it, or return None if this admin asked too often or
+    already has a working code.
 
     A code that still works is never cancelled by a new request, so nobody can lock an
     admin out just by asking for codes in their name."""
     now = timezone.now()
     codes = AdminLoginCode.objects.filter(admin=admin)
-    if _local_testing():
+    if local_testing():
         # On a developer laptop: always print a fresh code; the old one stops working
         codes.filter(used_at__isnull=True, expires_at__gt=now).update(expires_at=now)
     else:
         if codes.filter(created_at__gte=now - timedelta(hours=1)).count() >= CFG["max_per_hour"]:
-            return False
+            return None
         if codes.filter(created_at__gte=now - timedelta(seconds=CFG["resend_seconds"])).exists():
-            return False
+            return None
         if codes.filter(used_at__isnull=True, expires_at__gt=now, attempts__lt=CFG["max_attempts"]).exists():
-            return False  # the code already in their inbox still works
+            return None  # the code already in their inbox still works
 
     code = f"{secrets.randbelow(10 ** CFG['digits']):0{CFG['digits']}d}"
     AdminLoginCode.objects.create(
         admin=admin, code_hash=_hash(admin.id, code), expires_at=now + timedelta(minutes=CFG["ttl_minutes"])
     )
     _send_in_background(admin.email, code)
-    return True
+    return code
 
 
 def check_code(admin: User, code: str) -> bool:
@@ -108,7 +109,7 @@ def check_code(admin: User, code: str) -> bool:
     codes = AdminLoginCode.objects.filter(admin=admin)
 
     tries_today = codes.filter(created_at__gte=now - timedelta(days=1)).aggregate(n=Sum("attempts"))["n"] or 0
-    if tries_today >= CFG["max_failed_per_day"] and not _local_testing():
+    if tries_today >= CFG["max_failed_per_day"] and not local_testing():
         log.warning("Login code guesses blocked for %s: too many tries today", admin.email)
         return False
 

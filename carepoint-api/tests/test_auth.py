@@ -218,3 +218,39 @@ class LocalTesting(BaseTest):
         self.ask()
         self.client.post("/api/auth/request-code", {"email": self.admin.email}, format="json")
         self.assertEqual(len(mail.outbox), 1)
+
+
+class CodeOnLoginPage(BaseTest):
+    """On a developer laptop the login page shows the code; on the server it never does."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = make_admin()
+
+    def ask(self, email):
+        return self.client.post("/api/auth/request-code", {"email": email}, format="json").json()
+
+    @override_settings(DEBUG=True, EMAIL_MODE="terminal")
+    def test_laptop_shows_the_code(self):
+        body = self.ask(self.admin.email)
+        self.assertEqual(body["devCode"], code_from_last_email())
+
+    @override_settings(DEBUG=True, EMAIL_MODE="terminal")
+    def test_laptop_explains_unknown_email(self):
+        body = self.ask("stranger@example.com")
+        self.assertNotIn("devCode", body)
+        self.assertIn("add_admin stranger@example.com", body["devHint"])
+
+    @override_settings(DEBUG=False, EMAIL_MODE="smtp", EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_server_never_shows_the_code(self):
+        for email in (self.admin.email, "stranger@example.com"):
+            body = self.ask(email)
+            self.assertEqual(set(body), {"detail"})
+
+    @override_settings(DEBUG=True, EMAIL_MODE="smtp", EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
+    def test_real_emails_never_show_the_code_even_in_debug(self):
+        self.assertEqual(set(self.ask(self.admin.email)), {"detail"})
+
+    @override_settings(DEBUG=False, EMAIL_MODE="terminal")
+    def test_debug_off_never_shows_the_code(self):
+        self.assertEqual(set(self.ask(self.admin.email)), {"detail"})
