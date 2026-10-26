@@ -90,7 +90,7 @@ class AdminOrderSerializer(serializers.ModelSerializer):
                 warnings.append(
                     {
                         "code": "phone_mismatch",
-                        "message": f"Prescription {p.id} was ordered before from a different phone: "
+                        "message": f"Prescription {p.id} was also ordered from a different phone: "
                         + ", ".join(other_phones)
                         + ". Check with the customer before preparing it.",
                     }

@@ -31,6 +31,16 @@ There is no sign-up page. Admins are added from the command line:
 Login: the admin enters their email, gets a 6-digit code (printed in the `runserver`
 terminal on your laptop, emailed in production), and stays logged in for 14 days of use.
 
+## Dummy orders for testing
+
+```bash
+.venv/bin/python manage.py seed_demo_orders
+```
+
+Adds 10 realistic orders (uploads, refills, every status, warnings) with fake prescription
+photos. Only works with `DEBUG=true`, so it can never run on the real server. Refresh the
+staff dashboard afterwards to see them.
+
 ## Tests
 
 ```bash
