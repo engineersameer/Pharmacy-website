@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useAuth } from './auth'
-import type { OrderStatus, Page, StaffHours, StaffOrder, StaffPrescription, StoreSettings } from './types'
+import type { OrderStatus, Page, PrescriptionResult, StaffHours, StaffOrder, StoreSettings } from './types'
 
 /** Every admin API call the dashboard makes. */
 export function useStaffApi() {
@@ -39,8 +39,12 @@ export function useStaffApi() {
           method: 'POST',
           body: JSON.stringify({ prescriptionNumber }),
         }),
+      removePrescription: (orderId: number, prescriptionId: number) =>
+        json<StaffOrder>(`/admin/orders/${orderId}/prescriptions/${prescriptionId}`, { method: 'DELETE' }),
       prescriptionsByPhone: (phone: string) =>
-        json<StaffPrescription[]>(`/admin/prescriptions?phone=${encodeURIComponent(phone)}`),
+        json<PrescriptionResult[]>(`/admin/prescriptions?phone=${encodeURIComponent(phone)}`),
+      prescriptionsByNumber: (number: string) =>
+        json<PrescriptionResult[]>(`/admin/prescriptions?number=${encodeURIComponent(number)}`),
       /** The private file, as a blob (an <img> tag can't send the login token itself) */
       prescriptionFile: async (fileUrl: string) => (await apiFetch(fileUrl)).blob(),
 

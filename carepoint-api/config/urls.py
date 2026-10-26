@@ -19,6 +19,7 @@ URL map. Who may use each URL:
     GET  /api/admin/orders/<id>
     POST /api/admin/orders/<id>/status
     POST /api/admin/orders/<id>/prescriptions    attach a prescription by number
+    DELETE /api/admin/orders/<id>/prescriptions/<id>  remove a wrong prescription
     GET  /api/admin/prescriptions?phone=|number=
     GET  /api/admin/prescriptions/<id>/file
     GET/PATCH /api/admin/store
@@ -49,6 +50,10 @@ urlpatterns = [
     path("api/admin/orders/<int:pk>", orders_admin.OrderDetailView.as_view()),
     path("api/admin/orders/<int:pk>/status", orders_admin.OrderStatusView.as_view()),
     path("api/admin/orders/<int:pk>/prescriptions", orders_admin.OrderLinkPrescriptionView.as_view()),
+    path(
+        "api/admin/orders/<int:pk>/prescriptions/<int:prescription_pk>",
+        orders_admin.OrderUnlinkPrescriptionView.as_view(),
+    ),
     path("api/admin/prescriptions", orders_admin.PrescriptionSearchView.as_view()),
     path(
         "api/admin/prescriptions/<int:pk>/file",

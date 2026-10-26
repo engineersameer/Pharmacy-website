@@ -145,6 +145,66 @@ class AdminOrders(BaseTest):
         with self.assertNumQueries(5):  # login user, count, orders, prescriptions, their orders
             self.ayesha.get("/api/admin/orders")
 
+    def attach(self, order, p):
+        return self.ayesha.post(f"/api/admin/orders/{order.id}/prescriptions", {"prescriptionNumber": p.id}, format="json")
+
+    def remove(self, order, p):
+        return self.ayesha.delete(f"/api/admin/orders/{order.id}/prescriptions/{p.id}")
+
+    def test_remove_wrong_prescription_keeps_the_prescription(self):
+        o = make_order()
+        wrong = Prescription.objects.create(file="prescriptions/x.png")
+        right = Prescription.objects.create(file="prescriptions/y.png")
+        self.attach(o, wrong)
+        self.attach(o, right)
+        r = self.remove(o, wrong)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual([x["number"] for x in r.json()["prescriptions"]], [right.id])
+        self.assertTrue(Prescription.objects.filter(pk=wrong.pk).exists())  # only the link is gone
+
+    def test_remove_shows_up_on_other_screens(self):
+        o = make_order()
+        p = Prescription.objects.create(file="prescriptions/x.png")
+        self.attach(o, p)
+        since = (timezone.now() - timedelta(seconds=1)).isoformat()
+        Order.objects.filter(pk=o.pk).update(updated_at=timezone.now() - timedelta(hours=1))
+        self.remove(o, p)
+        changed = self.bilal.get("/api/admin/orders/changes", {"since": since}).json()["orders"]
+        self.assertEqual([(x["id"], x["prescriptions"]) for x in changed], [(o.id, [])])
+
+    def test_remove_missing_link_is_404(self):
+        o = make_order()
+        p = Prescription.objects.create(file="prescriptions/x.png")
+        self.assertEqual(self.remove(o, p).status_code, 404)
+
+    def test_cannot_change_prescriptions_on_finished_orders(self):
+        p = Prescription.objects.create(file="prescriptions/x.png")
+        for status in ("completed", "cancelled"):
+            o = make_order(status=status)
+            OrderPrescription.objects.create(order=o, prescription=p)
+            with self.subTest(status=status):
+                self.assertEqual(self.remove(o, p).status_code, 400)
+                other = Prescription.objects.create(file="prescriptions/z.png")
+                self.assertEqual(self.attach(o, other).status_code, 400)
+
+    def test_cannot_remove_customer_uploads(self):
+        o = make_order(order_type="new_prescription")
+        p = Prescription.objects.create(file="prescriptions/x.png")
+        OrderPrescription.objects.create(order=o, prescription=p)
+        self.assertEqual(self.remove(o, p).status_code, 400)
+
+    def test_search_by_number_shows_where_it_was_used(self):
+        first = make_order(order_type="new_prescription")
+        p = Prescription.objects.create(file="prescriptions/x.png")
+        OrderPrescription.objects.create(order=first, prescription=p)
+        r = self.ayesha.get("/api/admin/prescriptions", {"number": p.id}).json()
+        self.assertEqual(len(r), 1)
+        self.assertEqual(r[0]["usedIn"][0]["orderId"], first.id)
+        self.assertEqual(r[0]["usedIn"][0]["customerPhone"], "+923001234567")
+
+    def test_search_by_unknown_number_finds_nothing(self):
+        self.assertEqual(self.ayesha.get("/api/admin/prescriptions", {"number": 999999}).json(), [])
+
     def test_find_prescriptions_by_phone(self):
         o = make_order()
         p = Prescription.objects.create(file="prescriptions/x.png")

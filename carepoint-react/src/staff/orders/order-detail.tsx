@@ -2,7 +2,6 @@ import { useMutation } from '@tanstack/react-query'
 import {
   AlertTriangle,
   Bike,
-  Check,
   Copy,
   MapPin,
   MessageCircle,
@@ -20,8 +19,8 @@ import { cn } from '@/lib/utils'
 import { ACTION_LABEL, fullTime, localPhone, STATUS_LABEL, STATUS_STYLE, timeAgo, whatsappLink } from '../format'
 import { BackLink } from '../back-link'
 import { useStaffApi } from '../staff-api'
-import type { OrderStatus, StaffOrder, StaffPrescription } from '../types'
-import { PrescriptionFiles } from './prescription-files'
+import type { OrderStatus, PrescriptionResult, StaffOrder, StaffPrescription } from '../types'
+import { PrescriptionFiles, PrescriptionResults } from './prescription-files'
 
 export function OrderDetail({
   order,
@@ -193,10 +192,22 @@ function numberNotFound(order: StaffOrder) {
 
 /** The prescriptions part of an order, explained for each case */
 function PrescriptionsPart({ order, onChanged }: { order: StaffOrder; onChanged: (o: StaffOrder) => void }) {
+  const api = useStaffApi()
   const [addingAnother, setAddingAnother] = useState(false)
+  const [toRemove, setToRemove] = useState<StaffPrescription | null>(null)
   const hasFiles = order.prescriptions.length > 0
+  const finished = order.status === 'completed' || order.status === 'cancelled'
 
-  // Case 1: new customer uploaded photos
+  const remove = useMutation({
+    mutationFn: (p: StaffPrescription) => api.removePrescription(order.id, p.id),
+    onSuccess: (o, p) => {
+      onChanged(o)
+      toast.success(`Prescription ${p.number} removed from order #${order.id}`)
+    },
+    onError: (e) => toast.error(e instanceof ApiError ? e.message : 'Could not remove. Check your internet.'),
+  })
+
+  // Case 1: new customer uploaded photos (their own documents, so no Remove)
   if (order.orderType === 'new_prescription') {
     return (
       <>
@@ -209,6 +220,7 @@ function PrescriptionsPart({ order, onChanged }: { order: StaffOrder; onChanged:
   // Case 2: refill with no prescription yet: explain what happened and how to fix it
   if (!hasFiles) {
     const typed = numberNotFound(order)
+    if (finished) return <p className="text-muted-foreground">No prescription was attached to this order.</p>
     return (
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
         <p className="mb-1 flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-300">
@@ -220,48 +232,75 @@ function PrescriptionsPart({ order, onChanged }: { order: StaffOrder; onChanged:
               The customer typed <span className="font-semibold">{typed}</span>, but no prescription has that number.
             </>
           ) : (
-            "The customer didn't have their prescription number."
+            "The customer didn't give a prescription number, or the one attached was removed."
           )}{' '}
-          Find the right prescription and attach it before preparing the order.
+          Find the right prescription, check its photo, and attach it before preparing the order.
         </p>
         <FindPrescription order={order} onChanged={onChanged} />
       </div>
     )
   }
 
-  // Case 3: refill linked to a prescription
+  // Case 3: refill linked to one or more prescriptions
   return (
     <>
       <p className="mb-3 text-[0.92rem] text-muted-foreground">
-        This refill is for {order.prescriptions.length === 1 ? 'the prescription' : 'the prescriptions'} below. Click a photo to see it
-        full size.
+        This refill is for {order.prescriptions.length === 1 ? 'the prescription' : 'the prescriptions'} below. Click a photo to see it full
+        size.{!finished && ' If one is wrong, remove it and attach the right one.'}
       </p>
-      <PrescriptionFiles prescriptions={order.prescriptions} />
-      {addingAnother ? (
-        <div className="mt-4 border-t border-glass-border pt-4">
-          <FindPrescription order={order} onChanged={onChanged} />
-        </div>
-      ) : (
-        <button type="button" onClick={() => setAddingAnother(true)} className="mt-4 text-sm font-semibold text-primary hover:underline">
-          + Attach another prescription
-        </button>
-      )}
+      <PrescriptionFiles
+        prescriptions={order.prescriptions}
+        onRemove={finished ? undefined : setToRemove}
+        removing={remove.isPending}
+      />
+      {!finished &&
+        (addingAnother ? (
+          <div className="mt-4 border-t border-glass-border pt-4">
+            <FindPrescription order={order} onChanged={onChanged} />
+          </div>
+        ) : (
+          <button type="button" onClick={() => setAddingAnother(true)} className="mt-4 text-sm font-semibold text-primary hover:underline">
+            + Attach another prescription
+          </button>
+        ))}
+
+      <Dialog open={!!toRemove} onOpenChange={(o) => !o && setToRemove(null)}>
+        <DialogContent className="glass gap-4 bg-popover p-6 sm:max-w-sm">
+          <DialogTitle className="text-xl">Remove prescription {toRemove?.number}?</DialogTitle>
+          <DialogDescription>
+            It will no longer be part of order #{order.id}. The prescription itself is kept, so you can attach it again later.
+          </DialogDescription>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => setToRemove(null)}>
+              Keep it
+            </Button>
+            <Button
+              className="flex-1 bg-destructive text-white hover:bg-destructive/90 hover:shadow-none"
+              onClick={() => {
+                if (toRemove) remove.mutate(toRemove)
+                setToRemove(null)
+              }}
+            >
+              Remove
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
 
-/** Two ways to find a prescription: this customer's past ones (by phone), or by typing the number */
+/** Find a prescription by the customer's phone or by its number, review the photos, then attach */
 function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: (o: StaffOrder) => void }) {
   const api = useStaffApi()
   const [number, setNumber] = useState('')
   const [error, setError] = useState('')
-  const [found, setFound] = useState<StaffPrescription[] | null>(null)
+  const [results, setResults] = useState<{ title: string; items: PrescriptionResult[] } | null>(null)
 
   const attach = useMutation({
     mutationFn: (n: number) => api.attachPrescription(order.id, n),
     onSuccess: (o, n) => {
       onChanged(o)
-      setNumber('')
       setError('')
       toast.success(`Prescription ${n} attached to order #${order.id}`)
     },
@@ -269,72 +308,74 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
   })
 
   const search = useMutation({
-    mutationFn: () => api.prescriptionsByPhone(order.customerPhone),
-    onSuccess: setFound,
+    mutationFn: async (by: 'phone' | 'number') => ({
+      by,
+      items: by === 'phone' ? await api.prescriptionsByPhone(order.customerPhone) : await api.prescriptionsByNumber(number),
+    }),
+    onSuccess: ({ by, items }) => {
+      setError('')
+      setResults({
+        title: by === 'phone' ? `Prescriptions used with ${localPhone(order.customerPhone)}` : `Prescription number ${number}`,
+        items,
+      })
+    },
     onError: () => setError('Could not search. Check your internet.'),
   })
 
   const attached = new Set(order.prescriptions.map((p) => p.id))
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (number) attach.mutate(Number(number))
+    if (number) search.mutate('number')
   }
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Option 1 */}
       <div>
-        <p className="mb-2 text-sm font-semibold">Option 1: look at this customer's past prescriptions</p>
-        {found === null ? (
-          <Button size="sm" variant="ghost" onClick={() => search.mutate()} disabled={search.isPending}>
-            <Search /> {search.isPending ? 'Searching…' : `Search by ${localPhone(order.customerPhone)}`}
-          </Button>
-        ) : found.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {localPhone(order.customerPhone)} has no earlier prescriptions with us. Ask the customer to upload a photo instead.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {found.map((p) => (
-              <li key={p.id} className="flex items-center gap-3 rounded-xl border border-glass-border bg-glass-strong px-4 py-2.5">
-                <span className="font-semibold tracking-wider">{p.number}</span>
-                <span className="text-sm text-muted-foreground">uploaded {fullTime(p.createdAt)}</span>
-                {attached.has(p.id) ? (
-                  <span className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-primary">
-                    <Check className="size-4" /> On this order
-                  </span>
-                ) : (
-                  <Button size="sm" className="ml-auto h-9" onClick={() => attach.mutate(p.number)} disabled={attach.isPending}>
-                    Attach
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        <p className="mb-2 text-sm font-semibold">Option 1: this customer's past prescriptions</p>
+        <Button size="sm" variant="ghost" onClick={() => search.mutate('phone')} disabled={search.isPending}>
+          <Search /> Search by {localPhone(order.customerPhone)}
+        </Button>
       </div>
 
-      {/* Option 2 */}
       <form onSubmit={submit}>
-        <label htmlFor={`attach-${order.id}`} className="mb-2 block text-sm font-semibold">
-          Option 2: type the prescription number
+        <label htmlFor={`find-${order.id}`} className="mb-2 block text-sm font-semibold">
+          Option 2: find by prescription number
         </label>
         <div className="flex gap-2">
           <input
-            id={`attach-${order.id}`}
+            id={`find-${order.id}`}
             inputMode="numeric"
             placeholder="e.g. 12"
             value={number}
             onChange={(e) => setNumber(e.target.value.replace(/\D/g, '').replace(/^0+/, '').slice(0, 12))}
             className="h-11 min-w-0 flex-1 rounded-xl border border-input bg-field px-4 outline-none focus:border-primary"
           />
-          <Button type="submit" size="sm" className="h-11" disabled={attach.isPending || !number}>
-            Attach
+          <Button type="submit" size="sm" variant="ghost" className="h-11" disabled={search.isPending || !number}>
+            <Search /> Find
           </Button>
         </div>
       </form>
 
       {error && <p className="text-sm font-medium text-destructive">{error}</p>}
+
+      {results && (
+        <div className="rounded-xl border border-glass-border bg-glass p-3">
+          <p className="mb-1 text-sm font-semibold">{results.title}</p>
+          {results.items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nothing found. Check the number, or ask the customer to upload a photo instead.</p>
+          ) : (
+            <>
+              <p className="mb-3 text-xs text-muted-foreground">Open each photo to check it, then attach the right one or more.</p>
+              <PrescriptionResults
+                results={results.items}
+                attachedIds={attached}
+                onAttach={(p) => attach.mutate(p.number)}
+                attaching={attach.isPending}
+              />
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

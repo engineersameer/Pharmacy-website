@@ -16,6 +16,11 @@ export interface StaffPrescription {
   createdAt: string
 }
 
+/** A search result: a prescription plus the orders it was used in */
+export interface PrescriptionResult extends StaffPrescription {
+  usedIn: { orderId: number; customerName: string; customerPhone: string; createdAt: string }[]
+}
+
 export interface OrderWarning {
   code: 'no_prescription' | 'phone_mismatch'
   message: string

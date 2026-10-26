@@ -23,6 +23,22 @@ class AdminPrescriptionSerializer(serializers.ModelSerializer):
         return "pdf" if obj.file.name.endswith(".pdf") else "image"
 
 
+class PrescriptionSearchResultSerializer(AdminPrescriptionSerializer):
+    """A search result, with the orders it was used in, so the pharmacist can judge
+    whether it is the right one before attaching it."""
+
+    usedIn = serializers.SerializerMethodField()
+
+    class Meta(AdminPrescriptionSerializer.Meta):
+        fields = AdminPrescriptionSerializer.Meta.fields + ["usedIn"]
+
+    def get_usedIn(self, obj):
+        return [
+            {"orderId": o.id, "customerName": o.customer_name, "customerPhone": o.customer_phone, "createdAt": o.created_at}
+            for o in sorted(obj.orders.all(), key=lambda o: o.created_at)
+        ]
+
+
 class AdminOrderSerializer(serializers.ModelSerializer):
     customerName = serializers.CharField(source="customer_name")
     customerPhone = serializers.CharField(source="customer_phone")

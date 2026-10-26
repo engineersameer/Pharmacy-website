@@ -11,6 +11,7 @@ ADMIN_URLS = [
     ("get", "/api/admin/orders/1001"),
     ("post", "/api/admin/orders/1001/status"),
     ("post", "/api/admin/orders/1001/prescriptions"),
+    ("delete", "/api/admin/orders/1001/prescriptions/1"),
     ("get", "/api/admin/prescriptions?phone=03001234567"),
     ("get", "/api/admin/prescriptions/1/file"),
     ("get", "/api/admin/store"),

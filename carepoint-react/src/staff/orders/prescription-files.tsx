@@ -1,10 +1,11 @@
-import { Download, ExternalLink, FileText, ImageOff } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Check, Download, ExternalLink, FileText, ImageOff, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { fullTime, localPhone } from '../format'
 import { useStaffApi } from '../staff-api'
-import type { StaffPrescription } from '../types'
+import type { PrescriptionResult, StaffPrescription } from '../types'
 
 /** Loads a private prescription file with the login token and gives back a temporary local URL. */
 function useFileUrl(p: StaffPrescription) {
@@ -32,7 +33,16 @@ function useFileUrl(p: StaffPrescription) {
   return { url, failed }
 }
 
-export function PrescriptionFiles({ prescriptions }: { prescriptions: StaffPrescription[] }) {
+/** Prescriptions attached to the order. With onRemove, each one gets a Remove button. */
+export function PrescriptionFiles({
+  prescriptions,
+  onRemove,
+  removing,
+}: {
+  prescriptions: StaffPrescription[]
+  onRemove?: (p: StaffPrescription) => void
+  removing?: boolean
+}) {
   const [open, setOpen] = useState<StaffPrescription | null>(null)
   if (prescriptions.length === 0) return null
   return (
@@ -40,26 +50,92 @@ export function PrescriptionFiles({ prescriptions }: { prescriptions: StaffPresc
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {prescriptions.map((p) => (
           <li key={p.id}>
-            <FileTile p={p} onOpen={() => setOpen(p)} />
+            <FileTile
+              p={p}
+              onOpen={() => setOpen(p)}
+              footer={
+                onRemove && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-2 h-9 w-full hover:border-destructive hover:text-destructive"
+                    onClick={() => onRemove(p)}
+                    disabled={removing}
+                  >
+                    <Trash2 /> Remove
+                  </Button>
+                )
+              }
+            />
           </li>
         ))}
       </ul>
-      <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
-        <DialogContent className="glass max-h-[92svh] gap-3 bg-popover p-4 sm:max-w-3xl">
-          {open && <BigView p={open} />}
-        </DialogContent>
-      </Dialog>
+      <BigViewDialog p={open} onClose={() => setOpen(null)} />
     </>
   )
 }
 
-function FileTile({ p, onOpen }: { p: StaffPrescription; onOpen: () => void }) {
+/** Search results to review before attaching: photo, where it was used, and an Attach button. */
+export function PrescriptionResults({
+  results,
+  attachedIds,
+  onAttach,
+  attaching,
+}: {
+  results: PrescriptionResult[]
+  attachedIds: Set<number>
+  onAttach: (p: PrescriptionResult) => void
+  attaching?: boolean
+}) {
+  const [open, setOpen] = useState<StaffPrescription | null>(null)
+  return (
+    <>
+      <ul className="grid gap-3 sm:grid-cols-2">
+        {results.map((p) => (
+          <li key={p.id}>
+            <FileTile
+              p={p}
+              onOpen={() => setOpen(p)}
+              footer={
+                <>
+                  <p className="mt-1 text-xs text-muted-foreground">Uploaded {fullTime(p.createdAt)}</p>
+                  {p.usedIn.length > 0 && (
+                    <ul className="mt-1.5 space-y-0.5 text-xs break-words text-muted-foreground">
+                      {p.usedIn.map((u) => (
+                        <li key={u.orderId}>
+                          <span className="font-medium text-foreground">Order #{u.orderId}</span> · {u.customerName} ·{' '}
+                          {localPhone(u.customerPhone)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {attachedIds.has(p.id) ? (
+                    <p className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 text-sm font-medium text-primary">
+                      <Check className="size-4" /> On this order
+                    </p>
+                  ) : (
+                    <Button size="sm" className="mt-2 h-9 w-full" onClick={() => onAttach(p)} disabled={attaching}>
+                      <Plus /> Attach
+                    </Button>
+                  )}
+                </>
+              }
+            />
+          </li>
+        ))}
+      </ul>
+      <BigViewDialog p={open} onClose={() => setOpen(null)} />
+    </>
+  )
+}
+
+function FileTile({ p, onOpen, footer }: { p: StaffPrescription; onOpen: () => void; footer?: ReactNode }) {
   const { url, failed } = useFileUrl(p)
   const [broken, setBroken] = useState(false) // e.g. iPhone HEIC photos many browsers can't show
 
   return (
     <div className="overflow-hidden rounded-xl border border-glass-border bg-glass-strong">
-      <button type="button" onClick={onOpen} className="block aspect-[3/4] w-full" aria-label={`Open prescription ${p.number}`}>
+      <button type="button" onClick={onOpen} className="block aspect-[3/4] w-full" aria-label={`View prescription ${p.number}`} title="Click to view full size">
         {p.fileType === 'pdf' ? (
           <span className="grid size-full place-items-center text-primary">
             <FileText className="size-10" />
@@ -72,15 +148,26 @@ function FileTile({ p, onOpen }: { p: StaffPrescription; onOpen: () => void }) {
           </span>
         )}
       </button>
-      <div className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-        <span className="font-semibold tracking-wider">{p.number}</span>
-        {url && (
-          <a href={url} download={`prescription-${p.number}`} className="text-muted-foreground hover:text-primary" aria-label="Download">
-            <Download className="size-4" />
-          </a>
-        )}
+      <div className="px-3 py-2.5 text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-semibold tracking-wider">No. {p.number}</span>
+          {url && (
+            <a href={url} download={`prescription-${p.number}`} className="text-muted-foreground hover:text-primary" aria-label="Download">
+              <Download className="size-4" />
+            </a>
+          )}
+        </div>
+        {footer}
       </div>
     </div>
+  )
+}
+
+function BigViewDialog({ p, onClose }: { p: StaffPrescription | null; onClose: () => void }) {
+  return (
+    <Dialog open={!!p} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="glass max-h-[92svh] gap-3 bg-popover p-4 sm:max-w-3xl">{p && <BigView p={p} />}</DialogContent>
+    </Dialog>
   )
 }
 

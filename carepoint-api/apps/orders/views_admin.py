@@ -17,12 +17,13 @@ from .admin_serializers import (
     AdminOrderSerializer,
     AdminPrescriptionSerializer,
     LinkPrescriptionSerializer,
+    PrescriptionSearchResultSerializer,
     StatusChangeSerializer,
 )
 from .files import CONTENT_TYPES
 from .models import Order, OrderPrescription, Prescription
 from .phone import normalize_pk_mobile
-from .statuses import allowed_next
+from .statuses import FINISHED, allowed_next
 
 # All views here use the default permission: logged-in, active admin only.
 
@@ -119,19 +120,44 @@ class OrderStatusView(APIView):
         )
 
 
+def _refill_open_for_changes(order: Order):
+    """Prescriptions can only be attached to or removed from refill orders that aren't finished."""
+    if order.order_type != Order.Type.REFILL:
+        raise ValidationError({"detail": "Only refill orders can have prescriptions attached or removed."})
+    if order.status in FINISHED:
+        raise ValidationError({"detail": "This order is finished, so its prescriptions can't be changed."})
+
+
 class OrderLinkPrescriptionView(APIView):
     """POST /api/admin/orders/<id>/prescriptions {prescriptionNumber}
 
-    For refill orders placed without a number: staff find the prescription and attach it."""
+    Staff found the right prescription (by phone or number) and attach it to a refill."""
 
     def post(self, request, pk):
         order = get_object_or_404(Order, pk=pk)
+        _refill_open_for_changes(order)
         data = LinkPrescriptionSerializer(data=request.data)
         data.is_valid(raise_exception=True)
         prescription = Prescription.objects.filter(pk=data.validated_data["prescriptionNumber"]).first()
         if prescription is None:
             raise ValidationError({"prescriptionNumber": "No prescription has this number."})
         OrderPrescription.objects.get_or_create(order=order, prescription=prescription)
+        Order.objects.filter(pk=pk).update(updated_at=timezone.now())  # so other screens pick it up
+        return Response(AdminOrderSerializer(_orders().get(pk=pk)).data)
+
+
+class OrderUnlinkPrescriptionView(APIView):
+    """DELETE /api/admin/orders/<id>/prescriptions/<prescription id>
+
+    The pharmacist found that this prescription is wrong for the order. Only the link is
+    removed; the prescription itself stays, as other orders may use it."""
+
+    def delete(self, request, pk, prescription_pk):
+        order = get_object_or_404(Order, pk=pk)
+        _refill_open_for_changes(order)
+        deleted, _ = OrderPrescription.objects.filter(order=order, prescription_id=prescription_pk).delete()
+        if not deleted:
+            raise Http404("This prescription isn't attached to this order.")
         Order.objects.filter(pk=pk).update(updated_at=timezone.now())  # so other screens pick it up
         return Response(AdminOrderSerializer(_orders().get(pk=pk)).data)
 
@@ -156,7 +182,8 @@ class PrescriptionSearchView(APIView):
             qs = Prescription.objects.filter(orders__customer_phone=phone).distinct()
         else:
             raise ValidationError({"detail": "Search by phone or number."})
-        return Response(AdminPrescriptionSerializer(qs[:50], many=True).data)
+        qs = qs.prefetch_related("orders").order_by("-created_at")
+        return Response(PrescriptionSearchResultSerializer(qs[:50], many=True).data)
 
 
 class PrescriptionFileView(APIView):

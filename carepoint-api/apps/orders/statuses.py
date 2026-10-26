@@ -2,6 +2,9 @@ from .models import Order
 
 S = Order.Status
 
+# Orders that are done: their prescriptions can't be changed any more
+FINISHED = {S.COMPLETED, S.CANCELLED}
+
 # Which status an order may move to next. Anything not listed here is refused.
 _NEXT = {
     S.RECEIVED: {S.CONFIRMED, S.CANCELLED},
