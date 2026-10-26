@@ -295,7 +295,7 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
   const api = useStaffApi()
   const [number, setNumber] = useState('')
   const [error, setError] = useState('')
-  const [results, setResults] = useState<{ title: string; items: PrescriptionResult[] } | null>(null)
+  const [results, setResults] = useState<{ by: 'phone' | 'number'; title: string; items: PrescriptionResult[] } | null>(null)
 
   const attach = useMutation({
     mutationFn: (n: number) => api.attachPrescription(order.id, n),
@@ -315,6 +315,7 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
     onSuccess: ({ by, items }) => {
       setError('')
       setResults({
+        by,
         title: by === 'phone' ? `Prescriptions used with ${localPhone(order.customerPhone)}` : `Prescription number ${number}`,
         items,
       })
@@ -332,7 +333,15 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
     <div className="flex flex-col gap-4">
       <div>
         <p className="mb-2 text-sm font-semibold">Option 1: this customer's past prescriptions</p>
-        <Button size="sm" variant="ghost" onClick={() => search.mutate('phone')} disabled={search.isPending}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            setNumber('') // the results below are for the phone, not the number box
+            search.mutate('phone')
+          }}
+          disabled={search.isPending}
+        >
           <Search /> Search by {localPhone(order.customerPhone)}
         </Button>
       </div>
@@ -362,7 +371,11 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
         <div className="rounded-xl border border-glass-border bg-glass p-3">
           <p className="mb-1 text-sm font-semibold">{results.title}</p>
           {results.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nothing found. Check the number, or ask the customer to upload a photo instead.</p>
+            <p className="text-sm text-muted-foreground">
+              {results.by === 'phone'
+                ? `${localPhone(order.customerPhone)} has no earlier prescriptions with us. Ask the customer for the number, or to upload a photo instead.`
+                : 'No prescription has this number. Check it with the customer, or ask them to upload a photo instead.'}
+            </p>
           ) : (
             <>
               <p className="mb-3 text-xs text-muted-foreground">Open each photo to check it, then attach the right one or more.</p>
