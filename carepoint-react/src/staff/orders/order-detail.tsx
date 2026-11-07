@@ -175,7 +175,7 @@ export function OrderDetail({
 
 function Section({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-glass-border bg-glass p-5">
+    <section className="rounded-2xl border border-primary/40 bg-glass-strong p-5 shadow-[0_2px_4px_rgba(11,31,42,0.06),0_14px_36px_-14px_rgba(11,31,42,0.35)] backdrop-blur-md">
       <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-eyebrow uppercase [&_svg]:size-4">
         {icon}
         {title}
