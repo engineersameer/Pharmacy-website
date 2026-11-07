@@ -193,9 +193,9 @@ function OrderRow({ order, active, fresh, onOpen }: { order: StaffOrder; active:
       onClick={onOpen}
       aria-current={active}
       className={cn(
-        'glass flex w-full flex-col gap-2 bg-popover p-4 text-left hover:border-primary/60',
-        active && 'border-primary',
-        fresh && 'shadow-glow',
+        // Same teal glow on every card; the pulsing dot below marks the unseen ones
+        'glass flex w-full flex-col gap-2 border-primary/40 bg-popover p-4 text-left shadow-glow hover:border-primary/70',
+        active && 'border-primary outline-1 outline-primary hover:border-primary',
       )}
     >
       <div className="flex items-center gap-2">
