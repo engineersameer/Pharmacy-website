@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd carepoint-api && exec .venv/bin/python manage.py runserver 8001"],
+      "port": 8001
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "carepoint-react", "run", "dev"],
+      "port": 5174
+    }
+  ]
+}
