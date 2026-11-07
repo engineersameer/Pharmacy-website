@@ -32,7 +32,7 @@ export function SettingsPage({ onBack }: { onBack: (e: MouseEvent<HTMLAnchorElem
 
 function Card({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="glass p-6 sm:p-8">
+    <section className="glass bg-popover p-6 sm:p-8">
       <h2 className="mb-6 flex items-center gap-2.5 font-sans text-lg font-semibold [&_svg]:size-5 [&_svg]:text-primary">
         {icon}
         {title}

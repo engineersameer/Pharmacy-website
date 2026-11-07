@@ -174,7 +174,7 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
         {current ? (
           <OrderDetail key={current.id} order={current} onChanged={live.upsert} onBack={() => setSelected(null)} />
         ) : (
-          <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-glass-border bg-glass-strong text-center text-muted-foreground shadow-[var(--shadow)] backdrop-blur-md">
+          <div className="grid min-h-[420px] place-items-center rounded-2xl border border-dashed border-glass-border bg-popover text-center text-muted-foreground shadow-[var(--shadow)]">
             <div>
               <Inbox className="mx-auto mb-3 size-10 opacity-60" />
               Pick an order to see the details.
@@ -193,7 +193,7 @@ function OrderRow({ order, active, fresh, onOpen }: { order: StaffOrder; active:
       onClick={onOpen}
       aria-current={active}
       className={cn(
-        'glass flex w-full flex-col gap-2 p-4 text-left hover:border-primary/60',
+        'glass flex w-full flex-col gap-2 bg-popover p-4 text-left hover:border-primary/60',
         active && 'border-primary',
         fresh && 'shadow-glow',
       )}
@@ -254,7 +254,7 @@ function Empty({ searching, tab }: { searching: boolean; tab: Tab }) {
         ? 'Nothing in progress.'
         : 'No finished orders yet.'
   return (
-    <div className="rounded-2xl border border-dashed border-glass-border bg-glass-strong px-6 py-12 text-center text-muted-foreground shadow-[var(--shadow)] backdrop-blur-md">
+    <div className="rounded-2xl border border-dashed border-glass-border bg-popover px-6 py-12 text-center text-muted-foreground shadow-[var(--shadow)]">
       <Inbox className="mx-auto mb-3 size-8 opacity-60" />
       {text}
     </div>

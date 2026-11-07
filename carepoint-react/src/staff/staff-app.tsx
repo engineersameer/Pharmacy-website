@@ -83,7 +83,7 @@ function Dashboard() {
 
   return (
     <div className="flex min-h-svh flex-col">
-      <FloatingHeader className="max-w-[1400px] gap-1 px-3 sm:gap-2 md:px-8">
+      <FloatingHeader solid className="max-w-[1400px] gap-1 px-3 sm:gap-2 md:px-8">
         <a href="/staff" onClick={go('/staff')} className="mr-1 inline-flex min-w-0 items-center gap-2.5 font-heading text-[1.2rem] font-semibold text-foreground sm:mr-2 sm:text-[1.4rem]">
           <BrandMark />
           <span className="hidden max-w-[16ch] truncate sm:inline">{storeName}</span>
@@ -153,7 +153,7 @@ function Dashboard() {
         {onSettings && <SettingsPage onBack={go('/staff')} />}
       </main>
 
-      <FooterCard className="pt-6">
+      <FooterCard solid className="pt-6">
         <FooterBar
           left={
             <span>

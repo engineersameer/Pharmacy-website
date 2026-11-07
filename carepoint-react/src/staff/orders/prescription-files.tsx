@@ -134,7 +134,7 @@ function FileTile({ p, onOpen, footer }: { p: StaffPrescription; onOpen: () => v
   const [broken, setBroken] = useState(false) // e.g. iPhone HEIC photos many browsers can't show
 
   return (
-    <div className="overflow-hidden rounded-xl border border-glass-border bg-glass-strong">
+    <div className="overflow-hidden rounded-xl border border-glass-border bg-popover">
       <button type="button" onClick={onOpen} className="block aspect-[3/4] w-full" aria-label={`View prescription ${p.number}`} title="Click to view full size">
         {p.fileType === 'pdf' ? (
           <span className="grid size-full place-items-center text-primary">

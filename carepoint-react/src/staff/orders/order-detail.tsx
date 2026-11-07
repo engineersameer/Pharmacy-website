@@ -73,7 +73,7 @@ export function OrderDetail({
       {order.warnings.length > 0 && (
         <ul className="space-y-2">
           {order.warnings.map((w) => (
-            <li key={w.code + w.message} className="flex gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-[0.92rem] text-amber-700 dark:text-amber-300">
+            <li key={w.code + w.message} className="flex gap-2.5 rounded-xl border border-amber-500/30 bg-[color-mix(in_srgb,var(--color-amber-500)_10%,var(--popover))] px-4 py-3 text-[0.92rem] text-amber-700 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               {w.message}
             </li>
@@ -175,7 +175,7 @@ export function OrderDetail({
 
 function Section({ title, icon, children }: { title: string; icon?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-primary/40 bg-glass-strong p-5 shadow-[0_2px_4px_rgba(11,31,42,0.06),0_14px_36px_-14px_rgba(11,31,42,0.35)] backdrop-blur-md">
+    <section className="rounded-2xl border border-primary/40 bg-popover p-5 shadow-[0_2px_4px_rgba(11,31,42,0.06),0_14px_36px_-14px_rgba(11,31,42,0.35)]">
       <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold tracking-[0.14em] text-eyebrow uppercase [&_svg]:size-4">
         {icon}
         {title}
@@ -222,7 +222,7 @@ function PrescriptionsPart({ order, onChanged }: { order: StaffOrder; onChanged:
     const typed = numberNotFound(order)
     if (finished) return <p className="text-muted-foreground">No prescription was attached to this order.</p>
     return (
-      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+      <div className="rounded-xl border border-amber-500/30 bg-[color-mix(in_srgb,var(--color-amber-500)_10%,var(--popover))] p-4">
         <p className="mb-1 flex items-center gap-2 font-semibold text-amber-700 dark:text-amber-300">
           <AlertTriangle className="size-4" /> No prescription attached yet
         </p>
@@ -368,7 +368,7 @@ function FindPrescription({ order, onChanged }: { order: StaffOrder; onChanged: 
       {error && <p className="text-sm font-medium text-destructive">{error}</p>}
 
       {results && (
-        <div className="rounded-xl border border-glass-border bg-glass p-3">
+        <div className="rounded-xl border border-glass-border bg-popover p-3">
           <p className="mb-1 text-sm font-semibold">{results.title}</p>
           {results.items.length === 0 ? (
             <p className="text-sm text-muted-foreground">
