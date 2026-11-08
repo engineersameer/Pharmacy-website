@@ -21,5 +21,10 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    // `npm run preview` behind a Cloudflare quick tunnel, for sharing a test copy from a laptop.
+    // It reuses the /api forwarding above.
+    preview: {
+      allowedHosts: ['.trycloudflare.com'],
+    },
   }
 })
