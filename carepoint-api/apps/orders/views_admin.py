@@ -30,7 +30,7 @@ from .statuses import FINISHED, allowed_next
 
 def _orders():
     # prescriptions__orders lets the warnings check other orders without extra queries
-    return Order.objects.prefetch_related("prescriptions__orders")
+    return Order.objects.select_related("accepted_by").prefetch_related("prescriptions__orders")
 
 
 class OrderListView(ListAPIView):
@@ -118,6 +118,23 @@ class OrderStatusView(APIView):
             },
             status=status.HTTP_409_CONFLICT,
         )
+
+
+class OrderAcceptView(APIView):
+    """POST /api/admin/orders/<id>/accept
+
+    Staff pressed Accept on the new-order alarm. It is saved on the order, so the alarm stops
+    on every staff screen at their next check. The first person to accept is kept; accepting
+    again changes nothing. This does not change the status: staff still confirm the order
+    after checking it."""
+
+    def post(self, request, pk):
+        get_object_or_404(Order, pk=pk)
+        now = timezone.now()
+        Order.objects.filter(pk=pk, accepted_at__isnull=True).update(
+            accepted_at=now, accepted_by=request.user, updated_at=now
+        )
+        return Response(AdminOrderSerializer(_orders().get(pk=pk)).data)
 
 
 def _refill_open_for_changes(order: Order):

@@ -101,6 +101,33 @@ class AdminOrders(BaseTest):
         changed = self.ayesha.get("/api/admin/orders/changes", {"since": since}).json()["orders"]
         self.assertEqual([(x["id"], x["status"]) for x in changed], [(o.id, "confirmed")])
 
+    def test_accept_saves_who_and_when_but_keeps_the_status(self):
+        o = make_order()
+        r = self.ayesha.post(f"/api/admin/orders/{o.id}/accept")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["acceptedBy"], "ayesha@carepoint.pk")
+        self.assertIsNotNone(r.json()["acceptedAt"])
+        self.assertEqual(r.json()["status"], "received")  # staff still confirm after checking it
+
+    def test_first_to_accept_is_kept(self):
+        o = make_order()
+        first = self.ayesha.post(f"/api/admin/orders/{o.id}/accept").json()
+        again = self.bilal.post(f"/api/admin/orders/{o.id}/accept").json()
+        self.assertEqual(again["acceptedBy"], "ayesha@carepoint.pk")
+        self.assertEqual(again["acceptedAt"], first["acceptedAt"])
+
+    def test_changes_sees_another_admins_accept(self):
+        # This is how the alarm stops on every staff screen
+        o = make_order()
+        since = self.ayesha.get("/api/admin/orders/changes", {"since": timezone.now().isoformat()}).json()["serverTime"]
+        Order.objects.filter(pk=o.pk).update(updated_at=timezone.now() - timedelta(hours=1))
+        self.bilal.post(f"/api/admin/orders/{o.id}/accept")
+        changed = self.ayesha.get("/api/admin/orders/changes", {"since": since}).json()["orders"]
+        self.assertEqual([(x["id"], x["acceptedBy"]) for x in changed], [(o.id, "bilal@carepoint.pk")])
+
+    def test_accept_unknown_order_is_404(self):
+        self.assertEqual(self.ayesha.post("/api/admin/orders/999999/accept").status_code, 404)
+
     def test_server_time_works_unencoded_in_a_url(self):
         server_time = self.ayesha.get("/api/admin/orders/changes", {"since": "2026-01-01T00:00:00Z"}).json()["serverTime"]
         self.assertTrue(server_time.endswith("Z"))

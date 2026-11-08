@@ -145,6 +145,13 @@ else:
 EMAIL_ASYNC = env.bool("EMAIL_ASYNC", default=True)  # send login emails without making the request wait
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="CarePoint Pharmacy <noreply@localhost>")
 
+# Phone alerts for staff (web push): a new order reaches their phones even with the
+# browser closed. Off when the keys are empty.
+VAPID_PUBLIC_KEY = env("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
+VAPID_SUBJECT = env("VAPID_SUBJECT", default="mailto:noreply@localhost")
+PUSH_ASYNC = env.bool("PUSH_ASYNC", default=True)  # send alerts without making the customer wait
+
 # ---------------------------------------------------------------------------
 # Production hardening (only when DEBUG is off)
 # ---------------------------------------------------------------------------

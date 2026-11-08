@@ -46,6 +46,8 @@ class AdminOrderSerializer(serializers.ModelSerializer):
     deliveryAddress = serializers.CharField(source="delivery_address")
     createdAt = serializers.DateTimeField(source="created_at")
     updatedAt = serializers.DateTimeField(source="updated_at")
+    acceptedAt = serializers.DateTimeField(source="accepted_at")
+    acceptedBy = serializers.SerializerMethodField()
     prescriptions = AdminPrescriptionSerializer(many=True)
     nextStatuses = serializers.SerializerMethodField()
     warnings = serializers.SerializerMethodField()
@@ -66,8 +68,15 @@ class AdminOrderSerializer(serializers.ModelSerializer):
             "prescriptions",
             "createdAt",
             "updatedAt",
+            "acceptedAt",
+            "acceptedBy",
         ]
         read_only_fields = fields
+
+    def get_acceptedBy(self, obj):
+        """Name of the staff member who accepted the new order, if anyone has."""
+        user = obj.accepted_by
+        return (user.get_full_name() or user.email) if user else None
 
     def get_nextStatuses(self, obj):
         return sorted(allowed_next(obj))

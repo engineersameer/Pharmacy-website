@@ -65,6 +65,7 @@ export function OrderDetail({
           </h2>
           <p className="mt-1 text-sm text-muted-foreground" title={fullTime(order.createdAt)}>
             {order.orderType === 'new_prescription' ? 'New prescription' : 'Refill'} · placed {timeAgo(order.createdAt)}
+            {order.acceptedBy && <> · accepted by {order.acceptedBy}</>}
           </p>
         </div>
         <span className={cn('rounded-full px-3 py-1 text-sm font-semibold', STATUS_STYLE[order.status])}>{STATUS_LABEL[order.status]}</span>

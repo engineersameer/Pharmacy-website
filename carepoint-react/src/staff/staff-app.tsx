@@ -13,6 +13,7 @@ import { useOrderAlerts } from './alerts'
 import { AuthProvider, useAuth } from './auth'
 import { LoginPage } from './login-page'
 import { OrdersPage } from './orders/orders-page'
+import { usePhoneAlerts } from './phone-alerts'
 import { SettingsPage } from './settings/settings-page'
 import type { StaffOrder } from './types'
 import { useStoreName } from './use-store-name'
@@ -68,9 +69,15 @@ function usePath() {
 }
 
 function Dashboard() {
-  const { admin, logout } = useAuth()
+  const { admin, logout: signOut } = useAuth()
   const { theme, toggle: toggleTheme } = useTheme()
   const alerts = useOrderAlerts()
+  const phoneAlerts = usePhoneAlerts()
+  // A logged-out device must not keep getting order alerts (they show customer names)
+  const logout = useCallback(async () => {
+    await phoneAlerts.turnOff().catch(() => undefined)
+    await signOut()
+  }, [phoneAlerts, signOut])
   const { path, go } = usePath()
   const storeName = useStoreName()
   const onSettings = path.startsWith('/staff/settings')
@@ -168,7 +175,7 @@ function Dashboard() {
             onShowOrders={go('/staff')}
           />
         </div>
-        {onSettings && <SettingsPage onBack={go('/staff')} />}
+        {onSettings && <SettingsPage onBack={go('/staff')} phoneAlerts={phoneAlerts} />}
       </main>
 
       <FooterCard solid className="pt-6">

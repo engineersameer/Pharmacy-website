@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Clock, Save, Store } from 'lucide-react'
+import { BellRing, Clock, Save, Smartphone, Store } from 'lucide-react'
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { hoursLabel } from '@/lib/hours'
 import { cn } from '@/lib/utils'
 import { BackLink } from '../back-link'
 import { fullTime } from '../format'
+import type { usePhoneAlerts } from '../phone-alerts'
 import { useStaffApi } from '../staff-api'
 import type { StaffHours, StoreSettings } from '../types'
 
@@ -18,12 +19,19 @@ const input =
 
 const errorText = (e: unknown) => (e instanceof ApiError ? Object.values(e.fields)[0] || e.message : 'Could not save. Check your internet.')
 
-export function SettingsPage({ onBack }: { onBack: (e: MouseEvent<HTMLAnchorElement>) => void }) {
+export function SettingsPage({
+  onBack,
+  phoneAlerts,
+}: {
+  onBack: (e: MouseEvent<HTMLAnchorElement>) => void
+  phoneAlerts: ReturnType<typeof usePhoneAlerts>
+}) {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <BackLink onClick={onBack} className="-mb-3" />
       <h1 className="text-[2rem]">Store settings</h1>
       <p className="-mt-3 text-muted-foreground">Changes show on the public website straight away.</p>
+      <PhoneAlertsCard alerts={phoneAlerts} />
       <StoreForm />
       <HoursForm />
     </div>
@@ -39,6 +47,58 @@ function Card({ title, icon, children }: { title: string; icon: ReactNode; child
       </h2>
       {children}
     </section>
+  )
+}
+
+/** Turn phone alerts on or off for the device staff are using right now */
+function PhoneAlertsCard({ alerts }: { alerts: ReturnType<typeof usePhoneAlerts> }) {
+  const api = useStaffApi()
+  const test = useMutation({
+    mutationFn: api.testPush,
+    onSuccess: () => toast.success('Test alert sent. It should show on this device in a few seconds.'),
+    onError: (e) => toast.error(errorText(e)),
+  })
+  const { state, error, turnOn, turnOff } = alerts
+
+  const message: Record<typeof state, ReactNode> = {
+    checking: 'Checking this device…',
+    busy: 'Turning on…',
+    on: 'Phone alerts are on for this device. New orders show up here even when the browser is closed.',
+    off: 'Get an alert on this device for every new order, even when the browser is closed. Each staff member turns it on once on their own phone.',
+    blocked:
+      'Notifications are blocked for this site. Allow them in the browser settings (the icon next to the web address), then reload this page.',
+    'add-to-home-screen':
+      'On iPhone, alerts only work from the Home Screen: tap Share, then “Add to Home Screen”. Open CarePoint Staff from that icon, log in, and turn alerts on here.',
+    unsupported: 'This browser can’t receive phone alerts. Use Chrome on Android or a computer, or Safari from the Home Screen on iPhone.',
+    'server-off': 'Phone alerts are turned off on the server.',
+  }
+
+  return (
+    <Card title="Phone alerts on this device" icon={<Smartphone />}>
+      <p className="mb-4 text-[0.95rem]">{message[state]}</p>
+      {error && <p className="mb-4 text-sm font-medium text-destructive">{error}</p>}
+      <div className="flex flex-wrap gap-2">
+        {(state === 'off' || state === 'busy') && (
+          <Button onClick={() => void turnOn()} disabled={state === 'busy'}>
+            <BellRing /> Turn on phone alerts
+          </Button>
+        )}
+        {state === 'on' && (
+          <>
+            <Button variant="outline" onClick={() => test.mutate()} disabled={test.isPending}>
+              <BellRing /> Send a test alert
+            </Button>
+            <Button variant="ghost" onClick={() => void turnOff()}>
+              Turn off
+            </Button>
+          </>
+        )}
+      </div>
+      <p className="mt-4 text-sm text-muted-foreground">
+        Phone alerts play your phone’s normal notification sound once. For the alarm that rings until someone accepts, keep the
+        staff page open on the counter computer.
+      </p>
+    </Card>
   )
 }
 

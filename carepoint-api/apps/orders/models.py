@@ -1,5 +1,6 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -36,6 +37,12 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.RECEIVED)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)  # live dashboard asks "changed since?"
+    # Staff pressed Accept on the new-order alarm. Saved here (not in one browser) so the
+    # alarm stops on every staff screen, and others can see who is handling it.
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    accepted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
 
     prescriptions = models.ManyToManyField("Prescription", through="OrderPrescription", related_name="orders")
 

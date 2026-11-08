@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Bike, Inbox, RefreshCw, Search, Store, Upload, X } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { localPhone, STATUS_LABEL, STATUS_STYLE, timeAgo } from '../format'
@@ -51,16 +52,9 @@ export function OrdersPage({
 }) {
   useTick()
   const api = useStaffApi()
-  // Orders that came in while the dashboard was open and nobody has accepted yet
-  const [ringingIds, setRingingIds] = useState<number[]>([])
-  const handleNewOrders = useCallback(
-    (fresh: StaffOrder[]) => {
-      setRingingIds((ids) => [...new Set([...ids, ...fresh.map((o) => o.id)])])
-      onNewOrders(fresh)
-    },
-    [onNewOrders],
-  )
-  const live = useLiveOrders(handleNewOrders)
+  const live = useLiveOrders(onNewOrders)
+  // Accepted on this screen, while the server is being told (so the alarm stops at once)
+  const [accepting, setAccepting] = useState<Set<number>>(new Set())
   const storeName = useStoreName()
   const [tab, setTab] = useState<Tab>('new')
   const [selected, setSelected] = useState<number | null>(null)
@@ -116,10 +110,10 @@ export function OrdersPage({
     if (selected != null) window.scrollTo({ top: 0 })
   }, [selected])
 
-  // Still ringing: only orders that are still new (another staff member may have confirmed one already)
-  const ringing = ringingIds
-    .map((id) => live.orders.get(id))
-    .filter((o): o is StaffOrder => o?.status === 'received')
+  // Ringing: new orders nobody has accepted on any screen yet. Accepting is saved on the server,
+  // so when one person accepts, every screen sees it at its next check and stops.
+  const ringing = [...live.orders.values()]
+    .filter((o) => o.status === 'received' && !o.acceptedAt && !accepting.has(o.id))
     .sort((a, b) => b.id - a.id) // newest first, like the list
   const isRinging = ringing.length > 0
   useEffect(() => {
@@ -132,15 +126,21 @@ export function OrdersPage({
     live.markSeen(id)
   }
 
-  // Accept: stop the alarm and open the newest waiting order (the top one) in the New tab
+  // Accept: stop the alarm for everyone and open the newest waiting order (the top one).
+  // Only that order loses its "new" dot; the others keep it until someone opens them.
   const accept = () => {
-    ringing.forEach((o) => live.markSeen(o.id))
-    setRingingIds([])
+    const ids = ringing.map((o) => o.id)
+    setAccepting((s) => new Set([...s, ...ids]))
     setQuery('')
     setDebounced('')
     setTab('new')
     onShowOrders()
-    open(ringing[0].id)
+    open(ids[0])
+    void Promise.all(ids.map((id) => api.accept(id).then(live.upsert))).catch(() => {
+      // Not saved (e.g. offline): ring again so the orders aren't missed
+      toast.error('Could not accept. Check your internet.')
+      setAccepting((s) => new Set([...s].filter((id) => !ids.includes(id))))
+    })
   }
 
   if (live.loadError) {

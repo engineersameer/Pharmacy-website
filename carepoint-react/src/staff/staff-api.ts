@@ -34,6 +34,8 @@ export function useStaffApi() {
         const body = await res.json()
         return res.status === 409 ? { conflict: true as const, order: body.order as StaffOrder } : { conflict: false as const, order: body as StaffOrder }
       },
+      /** Stop the new-order alarm for everyone; returns the order with who accepted it */
+      accept: (orderId: number) => json<StaffOrder>(`/admin/orders/${orderId}/accept`, { method: 'POST' }),
       attachPrescription: (orderId: number, prescriptionNumber: number) =>
         json<StaffOrder>(`/admin/orders/${orderId}/prescriptions`, {
           method: 'POST',
@@ -47,6 +49,14 @@ export function useStaffApi() {
         json<PrescriptionResult[]>(`/admin/prescriptions?number=${encodeURIComponent(number)}`),
       /** The private file, as a blob (an <img> tag can't send the login token itself) */
       prescriptionFile: async (fileUrl: string) => (await apiFetch(fileUrl)).blob(),
+
+      /** Phone alerts (web push). publicKey is empty when the server has them turned off */
+      pushKey: () => json<{ publicKey: string }>('/admin/push/key'),
+      savePush: (subscription: PushSubscriptionJSON) =>
+        apiFetch('/admin/push/subscriptions', { method: 'POST', body: JSON.stringify(subscription) }),
+      removePush: (endpoint: string) =>
+        apiFetch('/admin/push/subscriptions', { method: 'DELETE', body: JSON.stringify({ endpoint }) }),
+      testPush: () => json<{ devices: number }>('/admin/push/test', { method: 'POST' }),
 
       store: () => json<StoreSettings>('/admin/store'),
       saveStore: (data: Partial<StoreSettings>) =>

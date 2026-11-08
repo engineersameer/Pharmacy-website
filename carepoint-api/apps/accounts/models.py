@@ -44,3 +44,23 @@ class AdminLoginCode(models.Model):
             and self.expires_at > timezone.now()
             and self.attempts < settings.LOGIN_CODE["max_attempts"]
         )
+
+
+class PushSubscription(models.Model):
+    """One staff device (phone or computer browser) that turned on phone alerts.
+
+    The browser gives us an address at its push service (Google, Apple, Mozilla) plus two
+    keys. We send new-order alerts to that address, locked with the keys, so only that
+    device can read them. It works even when the browser is closed."""
+
+    admin = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="push_subscriptions")
+    endpoint = models.URLField(max_length=1000, unique=True)  # the device's address at its push service
+    p256dh = models.CharField(max_length=200)  # the device's public key, to lock each message
+    auth = models.CharField(max_length=100)  # a shared secret for the same
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "admin_push_subscriptions"
+
+    def as_webpush(self) -> dict:
+        return {"endpoint": self.endpoint, "keys": {"p256dh": self.p256dh, "auth": self.auth}}

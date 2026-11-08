@@ -40,6 +40,9 @@ export interface StaffOrder {
   prescriptions: StaffPrescription[]
   createdAt: string
   updatedAt: string
+  /** Someone pressed Accept on the new-order alarm (stops it on every screen) */
+  acceptedAt: string | null
+  acceptedBy: string | null
 }
 
 export interface Page<T> {
