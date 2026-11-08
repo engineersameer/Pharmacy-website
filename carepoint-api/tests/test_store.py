@@ -17,6 +17,26 @@ class PublicStore(BaseTest):
         self.assertNotIn("updatedBy", self.client.get("/api/store").json())
 
 
+class AppManifests(BaseTest):
+    """Two installable apps on one website: customers (whole site) and staff (/staff only)."""
+
+    def test_customer_app_uses_the_store_name(self):
+        StoreSettings.objects.filter(pk=StoreSettings.load().pk).update(name="Eden Pharmacy")
+        r = self.client.get("/api/manifest/customer.webmanifest")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r["Content-Type"], "application/manifest+json")
+        m = r.json()
+        self.assertEqual((m["id"], m["name"], m["start_url"], m["scope"]), ("/", "Eden Pharmacy", "/", "/"))
+
+    def test_staff_app_only_covers_the_staff_pages(self):
+        StoreSettings.objects.filter(pk=StoreSettings.load().pk).update(name="Eden Pharmacy")
+        m = self.client.get("/api/manifest/staff.webmanifest").json()
+        self.assertEqual((m["id"], m["name"], m["start_url"], m["scope"]), ("/staff", "Eden Pharmacy Staff", "/staff", "/staff"))
+
+    def test_unknown_app_is_404(self):
+        self.assertEqual(self.client.get("/api/manifest/other.webmanifest").status_code, 404)
+
+
 class AdminStore(BaseTest):
     def setUp(self):
         super().setUp()

@@ -3,6 +3,7 @@ URL map. Who may use each URL:
 
   Public (customers, no login):
     GET  /api/store                              store details for the website
+    GET  /api/manifest/customer|staff.webmanifest  lets phones install the site as an app
     POST /api/refills                            order with a prescription number
     POST /api/prescriptions                      order with uploaded prescription photos
 
@@ -41,6 +42,7 @@ from apps.store import views as store
 urlpatterns = [
     # Public
     path("api/store", store.PublicStoreView.as_view()),
+    path("api/manifest/<str:app>.webmanifest", store.WebAppManifestView.as_view()),
     path("api/refills", orders_public.RefillCreateView.as_view()),
     path("api/prescriptions", orders_public.PrescriptionUploadView.as_view()),
     # Login

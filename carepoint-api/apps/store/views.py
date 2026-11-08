@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.http import Http404, JsonResponse
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -16,6 +17,53 @@ class PublicStoreView(APIView):
 
     def get(self, request):
         return Response(PublicStoreSerializer(StoreSettings.load()).data)
+
+
+class WebAppManifestView(APIView):
+    """GET /api/manifest/customer.webmanifest and /api/manifest/staff.webmanifest
+
+    The "ID cards" that let phones install the site as an app. There are two apps on the
+    same website: the customer app (the whole site) and the staff app (only /staff). They
+    are made here so they carry the store name staff set in Store settings."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, app):
+        name = StoreSettings.load().name
+        shared = {
+            "display": "standalone",
+            "background_color": "#0b1f2a",
+            "theme_color": "#0b1f2a",
+            "icons": [
+                {"src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+                {"src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"},
+            ],
+        }
+        if app == "customer":
+            manifest = {
+                "id": "/",
+                "name": name,
+                "short_name": name,
+                "description": f"Order prescription refills and uploads from {name}.",
+                "start_url": "/",
+                "scope": "/",
+                **shared,
+            }
+        elif app == "staff":
+            manifest = {
+                # Same id as the first staff app, so phones that installed it keep it
+                "id": "/staff",
+                "name": f"{name} Staff",
+                "short_name": "Staff",
+                "description": "New-order alerts and order dashboard for pharmacy staff.",
+                "start_url": "/staff",
+                "scope": "/staff",  # only the staff pages, so customers get their own app
+                **shared,
+            }
+        else:
+            raise Http404
+        return JsonResponse(manifest, content_type="application/manifest+json")
 
 
 class AdminStoreView(APIView):
