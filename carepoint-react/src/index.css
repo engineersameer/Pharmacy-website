@@ -259,6 +259,12 @@
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 60%, transparent); }
   80%, 100% { box-shadow: 0 0 0 10px transparent; }
 }
+/* New-order alarm: the bell icon shakes, then rests */
+@keyframes ring-bell {
+  0%, 50%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(-14deg); }
+  20%, 40% { transform: rotate(14deg); }
+}
 @keyframes aurora {
   0%, 100% { transform: translate(0, 0) scale(1); }
   50% { transform: translate(4%, -6%) scale(1.08); }

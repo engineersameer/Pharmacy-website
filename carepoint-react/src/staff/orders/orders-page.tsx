@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, Bike, Inbox, RefreshCw, Search, Store, Upload, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { localPhone, STATUS_LABEL, STATUS_STYLE, timeAgo } from '../format'
 import { useStaffApi } from '../staff-api'
 import type { StaffOrder } from '../types'
+import { NewOrderAlarm } from './new-order-alarm'
 import { OrderDetail } from './order-detail'
 import { useStoreName } from '../use-store-name'
 import { useLiveOrders } from './use-live-orders'
@@ -31,10 +32,35 @@ function useTick(ms = 30_000) {
   }, [ms])
 }
 
-export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]) => void }) {
+export function OrdersPage({
+  onNewOrders,
+  onAlarm,
+  soundOn,
+  soundReady,
+  onEnableSound,
+  onShowOrders,
+}: {
+  onNewOrders: (orders: StaffOrder[]) => void
+  /** Ring (true) or stop (false) the new-order alarm */
+  onAlarm: (on: boolean) => void
+  soundOn: boolean
+  soundReady: boolean
+  onEnableSound: () => void
+  /** Bring staff back to the orders page, e.g. from Store settings */
+  onShowOrders: () => void
+}) {
   useTick()
   const api = useStaffApi()
-  const live = useLiveOrders(onNewOrders)
+  // Orders that came in while the dashboard was open and nobody has accepted yet
+  const [ringingIds, setRingingIds] = useState<number[]>([])
+  const handleNewOrders = useCallback(
+    (fresh: StaffOrder[]) => {
+      setRingingIds((ids) => [...new Set([...ids, ...fresh.map((o) => o.id)])])
+      onNewOrders(fresh)
+    },
+    [onNewOrders],
+  )
+  const live = useLiveOrders(handleNewOrders)
   const storeName = useStoreName()
   const [tab, setTab] = useState<Tab>('new')
   const [selected, setSelected] = useState<number | null>(null)
@@ -79,15 +105,42 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
   const searching = debounced.length >= 2
   const list = useMemo(() => {
     const source = searching ? (search.data ?? []).map((o) => all.get(o.id) ?? o) : [...all.values()].filter(IN_TAB[tab])
-    // New orders: oldest first (first come, first served). Others: newest first.
-    return source.sort((a, b) => (tab === 'new' && !searching ? a.id - b.id : b.id - a.id))
+    // Newest order at the top, in every tab and in search results
+    return source.sort((a, b) => b.id - a.id)
   }, [searching, search.data, all, tab])
 
   const current = selected != null ? (all.get(selected) ?? search.data?.find((o) => o.id === selected)) : undefined
 
+  // A newly opened order starts at the top of its details
+  useEffect(() => {
+    if (selected != null) window.scrollTo({ top: 0 })
+  }, [selected])
+
+  // Still ringing: only orders that are still new (another staff member may have confirmed one already)
+  const ringing = ringingIds
+    .map((id) => live.orders.get(id))
+    .filter((o): o is StaffOrder => o?.status === 'received')
+    .sort((a, b) => b.id - a.id) // newest first, like the list
+  const isRinging = ringing.length > 0
+  useEffect(() => {
+    onAlarm(isRinging)
+    return () => onAlarm(false) // e.g. logging out while it rings
+  }, [isRinging, onAlarm])
+
   const open = (id: number) => {
     setSelected(id)
     live.markSeen(id)
+  }
+
+  // Accept: stop the alarm and open the newest waiting order (the top one) in the New tab
+  const accept = () => {
+    ringing.forEach((o) => live.markSeen(o.id))
+    setRingingIds([])
+    setQuery('')
+    setDebounced('')
+    setTab('new')
+    onShowOrders()
+    open(ringing[0].id)
   }
 
   if (live.loadError) {
@@ -103,8 +156,12 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(320px,420px)_1fr] lg:items-start">
-      {/* List */}
-      <section className={cn('flex min-w-0 flex-col gap-4', current && 'hidden lg:flex')} aria-label="Orders">
+      {/* List. Wide screens: pinned under the header while the page scrolls the details,
+          and only the list of orders scrolls inside it */}
+      <section
+        className={cn('flex min-w-0 flex-col gap-4 lg:sticky lg:top-24 lg:max-h-[calc(100svh-7.5rem)]', current && 'hidden lg:flex')}
+        aria-label="Orders"
+      >
         <div className="flex items-center gap-3">
           <h1 className="mr-auto text-[2rem]">Orders</h1>
           <LiveBadge online={live.online} loaded={live.loaded} />
@@ -154,23 +211,26 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
           </div>
         )}
 
-        {!live.loaded || (tab === 'done' && done.isLoading && !searching) || (searching && search.isLoading) ? (
-          <p className="py-10 text-center text-muted-foreground">Loading…</p>
-        ) : list.length === 0 ? (
-          <Empty searching={searching} tab={tab} />
-        ) : (
-          <ul className="flex flex-col gap-2.5">
-            {list.map((o) => (
-              <li key={o.id}>
-                <OrderRow order={o} active={o.id === selected} fresh={live.unseen.has(o.id)} onOpen={() => open(o.id)} />
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* One box around the list in every tab */}
+        <div className="rounded-lg border border-primary/40 bg-popover p-3 shadow-[var(--shadow)] lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
+          {!live.loaded || (tab === 'done' && done.isLoading && !searching) || (searching && search.isLoading) ? (
+            <p className="py-10 text-center text-muted-foreground">Loading…</p>
+          ) : list.length === 0 ? (
+            <Empty searching={searching} tab={tab} />
+          ) : (
+            <ul className="flex flex-col gap-2.5">
+              {list.map((o) => (
+                <li key={o.id}>
+                  <OrderRow order={o} active={o.id === selected} fresh={live.unseen.has(o.id)} onOpen={() => open(o.id)} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
 
       {/* Details */}
-      <section className={cn('min-w-0 lg:sticky lg:top-24', !current && 'hidden lg:block')} aria-label="Order details">
+      <section className={cn('min-w-0', !current && 'hidden lg:block')} aria-label="Order details">
         {current ? (
           <OrderDetail key={current.id} order={current} onChanged={live.upsert} onBack={() => setSelected(null)} />
         ) : (
@@ -182,6 +242,9 @@ export function OrdersPage({ onNewOrders }: { onNewOrders: (orders: StaffOrder[]
           </div>
         )}
       </section>
+
+      {/* Shows over every staff page (it renders on top of the whole screen) */}
+      <NewOrderAlarm orders={ringing} soundOn={soundOn} soundReady={soundReady} onEnableSound={onEnableSound} onAccept={accept} />
     </div>
   )
 }

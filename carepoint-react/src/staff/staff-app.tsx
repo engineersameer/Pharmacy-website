@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Bell, BellOff, ClipboardList, ExternalLink, LogOut, Moon, Settings, Sun } from 'lucide-react'
+import { Bell, BellOff, ClipboardList, ExternalLink, LogOut, Moon, Settings, Sun, Volume2 } from 'lucide-react'
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { Toaster } from 'sonner'
 import { BrandMark } from '@/components/brand-mark'
@@ -146,9 +146,27 @@ function Dashboard() {
       </FloatingHeader>
 
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-8 md:px-8">
+        {/* Browsers block sound after every page load until the first click, so ask for it */}
+        {alerts.enabled && !alerts.soundReady && (
+          <button
+            type="button"
+            onClick={() => void alerts.enableSound()}
+            className="mb-6 flex w-full items-center gap-2.5 rounded-xl border border-amber-500/30 bg-[color-mix(in_srgb,var(--color-amber-500)_10%,var(--popover))] px-4 py-3 text-left text-[0.92rem] text-amber-700 dark:text-amber-300"
+          >
+            <Volume2 className="size-4 shrink-0" />
+            Click anywhere on this page to turn on the new-order alarm sound.
+          </button>
+        )}
         {/* Orders stay mounted on the settings page so live updates and alerts keep running */}
         <div hidden={onSettings}>
-          <OrdersPage onNewOrders={announce} />
+          <OrdersPage
+            onNewOrders={announce}
+            onAlarm={alerts.setAlarm}
+            soundOn={alerts.enabled}
+            soundReady={alerts.soundReady}
+            onEnableSound={() => void alerts.enableSound()}
+            onShowOrders={go('/staff')}
+          />
         </div>
         {onSettings && <SettingsPage onBack={go('/staff')} />}
       </main>
