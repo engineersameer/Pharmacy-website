@@ -13,6 +13,7 @@ import { useOrderAlerts } from './alerts'
 import { AuthProvider, useAuth } from './auth'
 import { LoginPage } from './login-page'
 import { OrdersPage } from './orders/orders-page'
+import { InstallAppButton } from '@/components/shared/install-app-button'
 import { usePhoneAlerts } from './phone-alerts'
 import { SettingsPage } from './settings/settings-page'
 import type { StaffOrder } from './types'
@@ -126,6 +127,7 @@ function Dashboard() {
             {alerts.enabled ? <Bell /> : <BellOff />}
             <span className="hidden sm:inline">{alerts.enabled ? 'Alerts on' : 'Turn on alerts'}</span>
           </button>
+          <InstallAppButton appName={`${storeName} Staff`} className="size-10 sm:w-auto" />
           <button
             type="button"
             onClick={toggleTheme}

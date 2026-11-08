@@ -3,6 +3,7 @@ import { Menu, Moon, Sun, X } from 'lucide-react'
 import { useState } from 'react'
 import { BrandMark } from '@/components/brand-mark'
 import { FloatingHeader } from '@/components/shared/floating-header'
+import { InstallAppButton } from '@/components/shared/install-app-button'
 import { buttonVariants } from '@/components/ui/button'
 import { useStore } from '@/hooks/use-store'
 import { useTheme } from '@/hooks/use-theme'
@@ -76,6 +77,8 @@ export function Header() {
             Refill a prescription
           </a>
         </nav>
+
+        <InstallAppButton appName={store.name} />
 
         <button
           type="button"
