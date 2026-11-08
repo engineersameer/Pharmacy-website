@@ -77,7 +77,16 @@ export function NewOrderAlarm({
           )
         )}
 
-        <Button className="w-full" onClick={onAccept} autoFocus>
+        <Button
+          className="w-full"
+          onClick={onAccept}
+          // Don't let this press reach the page's "click anywhere to turn on sound" listener:
+          // turning sound on removes the "Tap to play" button above, this button jumps up
+          // before the press ends, and the Accept never happens.
+          onPointerDown={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+          autoFocus
+        >
           {count === 1 ? 'Accept and view order' : 'Accept and view orders'}
         </Button>
       </DialogContent>
