@@ -9,6 +9,7 @@ import json
 import logging
 import threading
 
+import requests
 from django.conf import settings
 from django.db import connections
 from pywebpush import WebPushException, webpush
@@ -44,8 +45,18 @@ def send_test(admin) -> int:
     return len(devices)
 
 
+def _session() -> requests.Session:
+    # trust_env=False: don't look up proxy settings from the system. On macOS that lookup
+    # calls Apple system code that crashes inside a Gunicorn worker ("Python quit
+    # unexpectedly"). Push services are reached directly, so no proxy is needed.
+    session = requests.Session()
+    session.trust_env = False
+    return session
+
+
 def _send(devices, payload: dict) -> None:
     data = json.dumps(payload)
+    session = _session()
     for device in devices:
         try:
             webpush(
@@ -56,6 +67,7 @@ def _send(devices, payload: dict) -> None:
                 ttl=TTL_SECONDS,
                 headers={"Urgency": "high"},
                 timeout=10,
+                requests_session=session,
             )
         except WebPushException as e:
             code = getattr(e.response, "status_code", None)

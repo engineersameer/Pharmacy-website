@@ -73,6 +73,13 @@ class PhoneAlerts(BaseTest):
         self.assertEqual(message["body"], "Ayesha Khan · Pickup · Refill")
 
     @mock.patch("apps.accounts.push.webpush")
+    def test_alerts_skip_the_system_proxy_lookup(self, webpush):
+        # On macOS that lookup crashes Gunicorn workers ("Python quit unexpectedly")
+        self.ayesha.post("/api/admin/push/subscriptions", DEVICE, format="json")
+        self.place_order()
+        self.assertFalse(webpush.call_args.kwargs["requests_session"].trust_env)
+
+    @mock.patch("apps.accounts.push.webpush")
     def test_removed_staff_get_no_alerts(self, webpush):
         self.ayesha.post("/api/admin/push/subscriptions", DEVICE, format="json")
         self.ayesha_user.is_active = False
